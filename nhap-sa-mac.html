@@ -11,28 +11,45 @@ html,body { width:100%; height:100%; background:#0a0a14; color:#fff; font-family
 /* ── START VIEW ── */
 #view-start {
   position:fixed; inset:0;
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
 }
 .start-logo {
-  width:80px; height:80px; border-radius:22px;
+  width:76px; height:76px; border-radius:20px;
   background:linear-gradient(135deg,#6366f1,#a855f7);
   display:flex; align-items:center; justify-content:center;
-  font-size:36px; font-weight:900; color:#fff;
-  margin-bottom:4px;
+  font-size:34px; font-weight:900; color:#fff; margin-bottom:2px;
 }
 .start-title { font-size:22px; font-weight:800; letter-spacing:-.3px; }
-.start-sub   { font-size:13px; color:#6b7280; letter-spacing:.05em; }
+.start-sub   { font-size:13px; color:#6b7280; }
+
+.tram-section { margin-top:22px; display:flex; flex-direction:column; align-items:center; gap:10px; }
+.tram-label   { font-size:11px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:#6b7280; }
+.tram-btns    { display:flex; gap:10px; }
+.tram-btn {
+  width:80px; padding:14px 0; border-radius:14px;
+  background:#16152a; border:2px solid #2a2940;
+  color:#6b7280; font-size:15px; font-weight:800;
+  cursor:pointer; transition:all .15s;
+  -webkit-tap-highlight-color:transparent; text-align:center;
+}
+.tram-btn.on {
+  background:linear-gradient(135deg,#6366f1,#a855f7);
+  border-color:transparent; color:#fff;
+  box-shadow:0 4px 18px rgba(99,102,241,.4);
+}
+
 .btn-open-cam {
-  margin-top:28px;
+  margin-top:24px;
   display:flex; align-items:center; gap:10px;
-  padding:18px 36px; border-radius:16px;
+  padding:17px 36px; border-radius:16px;
   background:linear-gradient(90deg,#6366f1,#a855f7);
   color:#fff; font-size:17px; font-weight:800;
   border:none; cursor:pointer;
   transition:opacity .2s, transform .12s;
   -webkit-tap-highlight-color:transparent;
 }
-.btn-open-cam:active { opacity:.85; transform:scale(.97); }
+.btn-open-cam:disabled { opacity:.3; cursor:not-allowed; transform:none; }
+.btn-open-cam:not(:disabled):active { opacity:.85; transform:scale(.97); }
 
 /* ── SCAN VIEW ── */
 #view-scan { position:fixed; inset:0; }
@@ -44,11 +61,16 @@ html,body { width:100%; height:100%; background:#0a0a14; color:#fff; font-family
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   pointer-events:none;
 }
+.scan-tram {
+  position:absolute; top:18px; left:50%; transform:translateX(-50%);
+  background:rgba(99,102,241,.85); backdrop-filter:blur(6px);
+  color:#fff; font-size:13px; font-weight:800; letter-spacing:.06em;
+  padding:7px 18px; border-radius:20px; white-space:nowrap;
+}
 .scan-box {
   width:230px; height:230px; border-radius:18px;
   border:2px solid rgba(99,249,150,.8);
-  position:relative;
-  box-shadow:0 0 0 4000px rgba(0,0,0,.42);
+  position:relative; box-shadow:0 0 0 4000px rgba(0,0,0,.42);
 }
 .scan-line {
   position:absolute; left:8px; right:8px; height:2px; border-radius:1px;
@@ -60,6 +82,17 @@ html,body { width:100%; height:100%; background:#0a0a14; color:#fff; font-family
   margin-top:28px; font-size:14px; color:rgba(255,255,255,.75);
   letter-spacing:.04em; text-align:center; padding:0 20px;
 }
+
+/* ── TOAST ── */
+.toast {
+  position:fixed; bottom:100px; left:50%; transform:translateX(-50%);
+  background:rgba(239,68,68,.92); color:#fff;
+  padding:11px 20px; border-radius:12px;
+  font-size:14px; font-weight:600; white-space:nowrap;
+  animation:fadeout 2.5s ease forwards; z-index:999;
+  pointer-events:none;
+}
+@keyframes fadeout { 0%,55%{opacity:1;} 100%{opacity:0;} }
 
 /* ── RATE BOTTOM SHEET ── */
 #view-rate {
@@ -74,8 +107,16 @@ html,body { width:100%; height:100%; background:#0a0a14; color:#fff; font-family
   display:flex; flex-direction:column; align-items:center; gap:12px;
 }
 .rate-handle { width:40px; height:4px; border-radius:2px; background:#333; margin-bottom:8px; }
+.rate-meta {
+  display:flex; gap:8px; align-items:center;
+}
+.rate-tram-badge {
+  font-size:10px; font-weight:800; letter-spacing:.15em; text-transform:uppercase;
+  background:rgba(99,102,241,.2); color:#818cf8;
+  padding:4px 10px; border-radius:8px;
+}
 .rate-team {
-  font-size:11px; font-weight:800; letter-spacing:.2em;
+  font-size:11px; font-weight:800; letter-spacing:.18em;
   text-transform:uppercase; color:#818cf8;
 }
 .rate-name {
@@ -139,8 +180,18 @@ html,body { width:100%; height:100%; background:#0a0a14; color:#fff; font-family
   <div class="start-logo">H</div>
   <p class="start-title">Nhập điểm Sa mạc</p>
   <p class="start-sub">Horeb 113</p>
-  <button class="btn-open-cam" id="btn-open-cam">
-    <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+
+  <div class="tram-section">
+    <p class="tram-label">Chọn trạm</p>
+    <div class="tram-btns">
+      <button class="tram-btn" data-tram="1">Trạm 1</button>
+      <button class="tram-btn" data-tram="2">Trạm 2</button>
+      <button class="tram-btn" data-tram="3">Trạm 3</button>
+    </div>
+  </div>
+
+  <button class="btn-open-cam" id="btn-open-cam" disabled>
+    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
       <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
     </svg>
     Mở camera
@@ -152,6 +203,7 @@ html,body { width:100%; height:100%; background:#0a0a14; color:#fff; font-family
   <video id="vid" playsinline autoplay muted></video>
   <canvas id="cvs"></canvas>
   <div class="scan-ui">
+    <p class="scan-tram" id="scan-tram"></p>
     <div class="scan-box"><div class="scan-line"></div></div>
     <p class="scan-tip">Đưa camera vào mã QR trên thẻ tên</p>
   </div>
@@ -161,7 +213,10 @@ html,body { width:100%; height:100%; background:#0a0a14; color:#fff; font-family
 <div id="view-rate" hidden>
   <div class="rate-card">
     <div class="rate-handle"></div>
-    <p class="rate-team" id="rate-team"></p>
+    <div class="rate-meta">
+      <span class="rate-tram-badge" id="rate-tram-badge"></span>
+      <span class="rate-team" id="rate-team"></span>
+    </div>
     <h2 class="rate-name" id="rate-name"></h2>
     <div class="stars">
       <button class="star" data-v="1">★</button>
@@ -194,16 +249,26 @@ const vid = document.getElementById('vid');
 const cvs = document.getElementById('cvs');
 const ctx = cvs.getContext('2d', { willReadFrequently: true });
 
+const $    = id => document.getElementById(id);
+const show = id => $(id).hidden = false;
+const hide = id => $(id).hidden = true;
+
 let stream   = null;
 let scanning = false;
 let rafId    = null;
 let curData  = null;
 let curScore = 0;
+let curTram  = null;  // giữ nguyên sau khi gửi, chỉ reset khi reload
 
-// ── helpers ──
-const $  = id => document.getElementById(id);
-const show = id => $(id).hidden = false;
-const hide = id => $(id).hidden = true;
+// ── CHỌN TRẠM ──
+document.querySelectorAll('.tram-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    curTram = +b.dataset.tram;
+    document.querySelectorAll('.tram-btn').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    $('btn-open-cam').disabled = false;
+  });
+});
 
 // ── MỞ CAMERA ──
 $('btn-open-cam').addEventListener('click', startCamera);
@@ -214,6 +279,7 @@ async function startCamera() {
       video: { facingMode: { ideal: 'environment' } }
     });
     vid.srcObject = stream;
+    $('scan-tram').textContent = 'Trạm ' + curTram;
     vid.addEventListener('loadedmetadata', () => { scanning = true; tick(); }, { once: true });
     hide('view-start');
     show('view-scan');
@@ -246,14 +312,14 @@ function tick() {
 
   if (result) {
     const parsed = parseQrUrl(result.data);
-    stopCamera();
     if (parsed) {
+      stopCamera();
       showRate(parsed);
+      return;
     } else {
-      alert('Tính năng này chỉ dành cho sa mạc sinh.');
-      goToStart();
+      // Sai định dạng: giữ camera, chỉ hiện toast
+      showToast('Tính năng này chỉ dành cho sa mạc sinh.');
     }
-    return;
   }
 
   rafId = requestAnimationFrame(tick);
@@ -268,13 +334,27 @@ function parseQrUrl(url) {
   return { doi, ten };
 }
 
+// ── TOAST ──
+let toastTimer = null;
+function showToast(msg) {
+  // chỉ 1 toast cùng lúc
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.remove(), 2500);
+}
+
 // ── SHOW RATE ──
 function showRate({ doi, ten }) {
   curData  = { doi, ten };
   curScore = 0;
-  $('rate-team').textContent  = 'Đội ' + doi;
-  $('rate-name').textContent  = ten;
-  $('score-label').textContent = 'Chọn số sao';
+  $('rate-tram-badge').textContent = 'Trạm ' + curTram;
+  $('rate-team').textContent       = 'Đội ' + doi;
+  $('rate-name').textContent       = ten;
+  $('score-label').textContent     = 'Chọn số sao';
   $('score-label').classList.remove('set');
   $('btn-submit').disabled    = true;
   $('btn-submit').textContent = 'Gửi điểm';
@@ -307,7 +387,7 @@ $('btn-submit').addEventListener('click', async () => {
     const res = await fetch(SERVER, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ doi: curData.doi, ten: curData.ten, diem: curScore }),
+      body: JSON.stringify({ tram: curTram, doi: curData.doi, ten: curData.ten, diem: curScore }),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => '');
@@ -321,25 +401,21 @@ $('btn-submit').addEventListener('click', async () => {
   }
 });
 
-// ── CANCEL ──
-$('btn-cancel').addEventListener('click', goToStart);
+// ── CANCEL → quét lại luôn ──
+$('btn-cancel').addEventListener('click', async () => {
+  hide('view-rate');
+  await startCamera();
+});
 
-// ── DONE ──
+// ── DONE → về màn chờ (giữ trạm, bấm tay để mở camera) ──
 function showDone(ten) {
   hide('view-rate');
   $('done-name').textContent = ten;
   show('view-done');
-  setTimeout(goToStart, 1800);
-}
-
-// ── VỀ MÀN HÌNH ĐẦU ──
-function goToStart() {
-  hide('view-scan');
-  hide('view-rate');
-  hide('view-done');
-  curData  = null;
-  curScore = 0;
-  show('view-start');
+  setTimeout(() => {
+    hide('view-done');
+    show('view-start');
+  }, 1800);
 }
 </script>
 </body>
