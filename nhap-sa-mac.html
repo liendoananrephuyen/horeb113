@@ -3,12 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Nhập Sa Mạc · Horeb 113</title>
+<title>Nhập điểm · Sa mạc Horeb 113</title>
 <style>
 *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
-html,body { width:100%; height:100%; background:#000; color:#fff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; overflow:hidden; }
+html,body { width:100%; height:100%; background:#0a0a14; color:#fff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; overflow:hidden; }
 
-/* ── SCAN ── */
+/* ── START VIEW ── */
+#view-start {
+  position:fixed; inset:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
+}
+.start-logo {
+  width:80px; height:80px; border-radius:22px;
+  background:linear-gradient(135deg,#6366f1,#a855f7);
+  display:flex; align-items:center; justify-content:center;
+  font-size:36px; font-weight:900; color:#fff;
+  margin-bottom:4px;
+}
+.start-title { font-size:22px; font-weight:800; letter-spacing:-.3px; }
+.start-sub   { font-size:13px; color:#6b7280; letter-spacing:.05em; }
+.btn-open-cam {
+  margin-top:28px;
+  display:flex; align-items:center; gap:10px;
+  padding:18px 36px; border-radius:16px;
+  background:linear-gradient(90deg,#6366f1,#a855f7);
+  color:#fff; font-size:17px; font-weight:800;
+  border:none; cursor:pointer;
+  transition:opacity .2s, transform .12s;
+  -webkit-tap-highlight-color:transparent;
+}
+.btn-open-cam:active { opacity:.85; transform:scale(.97); }
+
+/* ── SCAN VIEW ── */
 #view-scan { position:fixed; inset:0; }
 #vid { width:100%; height:100%; object-fit:cover; }
 #cvs { display:none; }
@@ -30,21 +56,16 @@ html,body { width:100%; height:100%; background:#000; color:#fff; font-family:-a
   animation:sweep 2s ease-in-out infinite;
 }
 @keyframes sweep { 0%,100%{top:12%;} 50%{top:82%;} }
-
 .scan-tip {
   margin-top:28px; font-size:14px; color:rgba(255,255,255,.75);
   letter-spacing:.04em; text-align:center; padding:0 20px;
-}
-.scan-msg {
-  margin-top:10px; font-size:12px; text-align:center; padding:0 20px;
-  color:#fbbf24; min-height:18px; word-break:break-all;
 }
 
 /* ── RATE BOTTOM SHEET ── */
 #view-rate {
   position:fixed; inset:0;
   display:flex; align-items:flex-end; justify-content:center;
-  background:rgba(0,0,0,.55); backdrop-filter:blur(3px);
+  background:rgba(0,0,0,.6); backdrop-filter:blur(4px);
 }
 .rate-card {
   width:100%; max-width:430px;
@@ -52,10 +73,7 @@ html,body { width:100%; height:100%; background:#000; color:#fff; font-family:-a
   padding:10px 28px 52px;
   display:flex; flex-direction:column; align-items:center; gap:12px;
 }
-.rate-handle {
-  width:40px; height:4px; border-radius:2px;
-  background:#333; margin-bottom:8px;
-}
+.rate-handle { width:40px; height:4px; border-radius:2px; background:#333; margin-bottom:8px; }
 .rate-team {
   font-size:11px; font-weight:800; letter-spacing:.2em;
   text-transform:uppercase; color:#818cf8;
@@ -74,10 +92,8 @@ html,body { width:100%; height:100%; background:#000; color:#fff; font-family:-a
 }
 .star.on { color:#fbbf24; }
 .star:active { transform:scale(1.18); }
-
 .score-label { font-size:14px; color:#6b7280; min-height:20px; }
 .score-label.set { color:#fbbf24; font-weight:700; }
-
 .btn-submit {
   width:100%; padding:16px;
   background:linear-gradient(90deg,#6366f1,#a855f7);
@@ -87,7 +103,6 @@ html,body { width:100%; height:100%; background:#000; color:#fff; font-family:-a
 }
 .btn-submit:disabled { opacity:.3; cursor:not-allowed; }
 .btn-submit:not(:disabled):active { transform:scale(.98); }
-
 .btn-cancel {
   background:none; border:none; color:#4b5563;
   font-size:14px; cursor:pointer; padding:8px;
@@ -98,18 +113,16 @@ html,body { width:100%; height:100%; background:#000; color:#fff; font-family:-a
 #view-done {
   position:fixed; inset:0;
   display:flex; align-items:center; justify-content:center;
-  background:rgba(0,0,0,.7);
+  background:rgba(0,0,0,.75);
 }
 .done-card {
-  background:#12111d; border-radius:24px;
-  padding:44px 56px;
+  background:#12111d; border-radius:24px; padding:44px 56px;
   display:flex; flex-direction:column; align-items:center; gap:14px;
   animation:pop .25s ease;
 }
 @keyframes pop { from{transform:scale(.8);opacity:0;} to{transform:scale(1);opacity:1;} }
 .done-icon {
-  width:76px; height:76px; border-radius:50%;
-  background:#22c55e;
+  width:76px; height:76px; border-radius:50%; background:#22c55e;
   display:flex; align-items:center; justify-content:center;
   font-size:38px; font-weight:900;
 }
@@ -121,18 +134,30 @@ html,body { width:100%; height:100%; background:#000; color:#fff; font-family:-a
 </head>
 <body>
 
+<!-- START VIEW -->
+<div id="view-start">
+  <div class="start-logo">H</div>
+  <p class="start-title">Nhập điểm Sa mạc</p>
+  <p class="start-sub">Horeb 113</p>
+  <button class="btn-open-cam" id="btn-open-cam">
+    <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+    </svg>
+    Mở camera
+  </button>
+</div>
+
 <!-- SCAN VIEW -->
-<div id="view-scan">
+<div id="view-scan" hidden>
   <video id="vid" playsinline autoplay muted></video>
   <canvas id="cvs"></canvas>
   <div class="scan-ui">
     <div class="scan-box"><div class="scan-line"></div></div>
-    <p class="scan-tip" id="scan-tip">Đưa camera vào mã QR trên thẻ tên</p>
-    <p class="scan-msg" id="scan-msg"></p>
+    <p class="scan-tip">Đưa camera vào mã QR trên thẻ tên</p>
   </div>
 </div>
 
-<!-- RATE VIEW (bottom sheet, overlays on top of scan) -->
+<!-- RATE VIEW -->
 <div id="view-rate" hidden>
   <div class="rate-card">
     <div class="rate-handle"></div>
@@ -162,29 +187,50 @@ html,body { width:100%; height:100%; background:#000; color:#fff; font-family:-a
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
-// ── CẤU HÌNH ──────────────────────────────────────────
-const SERVER = 'https://hylecuoicung.com/api/bangdiem';
+const SERVER      = 'https://hylecuoicung.com/api/bangdiem';
 const STAR_LABELS = ['', 'Chưa đạt', 'Đạt', 'Khá', 'Tốt', 'Xuất sắc'];
-// ──────────────────────────────────────────────────────
 
-const vid     = document.getElementById('vid');
-const cvs     = document.getElementById('cvs');
-const ctx     = cvs.getContext('2d', { willReadFrequently: true });
+const vid = document.getElementById('vid');
+const cvs = document.getElementById('cvs');
+const ctx = cvs.getContext('2d', { willReadFrequently: true });
 
-let scanning   = false;
-let rafId      = null;
-let curData    = null;
-let curScore   = 0;
+let stream   = null;
+let scanning = false;
+let rafId    = null;
+let curData  = null;
+let curScore = 0;
 
-// ── CAMERA ──
-navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } })
-  .then(stream => {
+// ── helpers ──
+const $  = id => document.getElementById(id);
+const show = id => $(id).hidden = false;
+const hide = id => $(id).hidden = true;
+
+// ── MỞ CAMERA ──
+$('btn-open-cam').addEventListener('click', startCamera);
+
+async function startCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } }
+    });
     vid.srcObject = stream;
-    vid.addEventListener('loadedmetadata', () => { scanning = true; tick(); });
-  })
-  .catch(() => {
-    document.getElementById('scan-tip').textContent = '❌ Không mở được camera. Hãy cấp quyền rồi tải lại trang.';
-  });
+    vid.addEventListener('loadedmetadata', () => { scanning = true; tick(); }, { once: true });
+    hide('view-start');
+    show('view-scan');
+  } catch(e) {
+    alert('Không mở được camera.\nHãy cấp quyền camera rồi thử lại.');
+  }
+}
+
+function stopCamera() {
+  scanning = false;
+  cancelAnimationFrame(rafId);
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+    vid.srcObject = null;
+  }
+}
 
 // ── QR SCAN LOOP ──
 function tick() {
@@ -200,22 +246,20 @@ function tick() {
 
   if (result) {
     const parsed = parseQrUrl(result.data);
+    stopCamera();
     if (parsed) {
-      scanning = false;
-      cancelAnimationFrame(rafId);
-      document.getElementById('scan-msg').textContent = '';
       showRate(parsed);
-      return;
     } else {
-      document.getElementById('scan-msg').textContent = '⚠ QR đọc được nhưng sai định dạng: ' + result.data;
+      alert('Tính năng này chỉ dành cho sa mạc sinh.');
+      goToStart();
     }
+    return;
   }
 
   rafId = requestAnimationFrame(tick);
 }
 
-// ── PARSE URL ──
-// Nhận dạng: .../doi-{N}/{ten-slug}.html
+// ── PARSE URL: .../doi-{N}/{ten-slug}.html ──
 function parseQrUrl(url) {
   const m = url.match(/\/doi-(\d+)\/([^/?#]+)\.html/i);
   if (!m) return null;
@@ -228,36 +272,34 @@ function parseQrUrl(url) {
 function showRate({ doi, ten }) {
   curData  = { doi, ten };
   curScore = 0;
-
-  document.getElementById('rate-team').textContent   = 'Đội ' + doi;
-  document.getElementById('rate-name').textContent   = ten;
-  document.getElementById('score-label').textContent = 'Chọn số sao';
-  document.getElementById('score-label').classList.remove('set');
-  document.getElementById('btn-submit').disabled = true;
-  document.getElementById('btn-submit').textContent  = 'Gửi điểm';
+  $('rate-team').textContent  = 'Đội ' + doi;
+  $('rate-name').textContent  = ten;
+  $('score-label').textContent = 'Chọn số sao';
+  $('score-label').classList.remove('set');
+  $('btn-submit').disabled    = true;
+  $('btn-submit').textContent = 'Gửi điểm';
   document.querySelectorAll('.star').forEach(s => s.classList.remove('on'));
-
-  document.getElementById('view-rate').hidden = false;
+  hide('view-scan');
+  show('view-rate');
 }
 
 // ── STARS ──
 document.querySelectorAll('.star').forEach(s => {
   s.addEventListener('click', () => {
     curScore = +s.dataset.v;
-    document.querySelectorAll('.star').forEach(star => {
-      star.classList.toggle('on', +star.dataset.v <= curScore);
-    });
-    const lbl = document.getElementById('score-label');
-    lbl.textContent = curScore + ' sao — ' + STAR_LABELS[curScore];
-    lbl.classList.add('set');
-    document.getElementById('btn-submit').disabled = false;
+    document.querySelectorAll('.star').forEach(star =>
+      star.classList.toggle('on', +star.dataset.v <= curScore)
+    );
+    $('score-label').textContent = curScore + ' sao — ' + STAR_LABELS[curScore];
+    $('score-label').classList.add('set');
+    $('btn-submit').disabled = false;
   });
 });
 
 // ── SUBMIT ──
-document.getElementById('btn-submit').addEventListener('click', async () => {
+$('btn-submit').addEventListener('click', async () => {
   if (!curData || !curScore) return;
-  const btn = document.getElementById('btn-submit');
+  const btn = $('btn-submit');
   btn.disabled = true;
   btn.textContent = 'Đang gửi…';
 
@@ -272,34 +314,32 @@ document.getElementById('btn-submit').addEventListener('click', async () => {
       throw new Error('HTTP ' + res.status + (body ? ' — ' + body : ''));
     }
     showDone(curData.ten);
-  } catch (e) {
-    const msg = e.message || String(e);
-    console.error('[bangdiem] fetch error:', msg, '\nURL:', SERVER);
-    alert('Lỗi gửi dữ liệu:\n' + msg + '\n\nURL: ' + SERVER);
+  } catch(e) {
+    alert('Lỗi gửi dữ liệu:\n' + (e.message || e));
     btn.disabled = false;
     btn.textContent = 'Gửi điểm';
   }
 });
 
 // ── CANCEL ──
-document.getElementById('btn-cancel').addEventListener('click', resetScan);
+$('btn-cancel').addEventListener('click', goToStart);
 
 // ── DONE ──
 function showDone(ten) {
-  document.getElementById('view-rate').hidden = true;
-  document.getElementById('done-name').textContent = ten;
-  document.getElementById('view-done').hidden = false;
-  setTimeout(resetScan, 1800);
+  hide('view-rate');
+  $('done-name').textContent = ten;
+  show('view-done');
+  setTimeout(goToStart, 1800);
 }
 
-// ── RESET ──
-function resetScan() {
-  document.getElementById('view-rate').hidden = true;
-  document.getElementById('view-done').hidden = true;
+// ── VỀ MÀN HÌNH ĐẦU ──
+function goToStart() {
+  hide('view-scan');
+  hide('view-rate');
+  hide('view-done');
   curData  = null;
   curScore = 0;
-  scanning = true;
-  tick();
+  show('view-start');
 }
 </script>
 </body>
