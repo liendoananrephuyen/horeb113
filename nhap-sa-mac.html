@@ -267,10 +267,15 @@ document.getElementById('btn-submit').addEventListener('click', async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ doi: curData.doi, ten: curData.ten, diem: curScore }),
     });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error('HTTP ' + res.status + (body ? ' — ' + body : ''));
+    }
     showDone(curData.ten);
   } catch (e) {
-    alert('Lỗi gửi dữ liệu: ' + e.message);
+    const msg = e.message || String(e);
+    console.error('[bangdiem] fetch error:', msg, '\nURL:', SERVER);
+    alert('Lỗi gửi dữ liệu:\n' + msg + '\n\nURL: ' + SERVER);
     btn.disabled = false;
     btn.textContent = 'Gửi điểm';
   }
