@@ -153,6 +153,20 @@ html,body { width:100%; height:100%; background:#0a0a14; color:#fff;
   cursor:pointer; -webkit-tap-highlight-color:transparent;
 }
 
+/* ── LOADING ── */
+#view-loading {
+  position:fixed; inset:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;
+  background:#0a0a14;
+}
+.spinner {
+  width:48px; height:48px; border-radius:50%;
+  border:4px solid #1e1e3a; border-top-color:#6366f1;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading-text { font-size:14px; color:#6b7280; font-weight:600; }
+
 /* CONFETTI */
 .confetti-wrap { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
 .conf {
@@ -179,6 +193,12 @@ html,body { width:100%; height:100%; background:#0a0a14; color:#fff;
     </svg>
     Quét mã QR
   </button>
+</div>
+
+<!-- LOADING -->
+<div id="view-loading" hidden>
+  <div class="spinner"></div>
+  <p class="loading-text">Đang kiểm tra…</p>
 </div>
 
 <!-- SCAN -->
@@ -242,8 +262,8 @@ let rafId    = null;
 
 // ── MỞ CAMERA ──
 $('btn-scan').addEventListener('click', startCamera);
-$('btn-ok-again').addEventListener('click', () => { hide('view-ok');   startCamera(); });
-$('btn-wait-again').addEventListener('click', () => { hide('view-wait'); startCamera(); });
+$('btn-ok-again').addEventListener('click',   () => { hide('view-ok');      startCamera(); });
+$('btn-wait-again').addEventListener('click', () => { hide('view-wait');    startCamera(); });
 
 async function startCamera() {
   hide('view-start');
@@ -283,6 +303,8 @@ function tick() {
     const doi = parseDoiFromUrl(result.data);
     if (doi) {
       stopCamera();
+      hide('view-scan');   // ẩn ngay, tránh Zalo WebView bung video player
+      show('view-loading');
       checkDoi(doi);
       return;
     } else {
@@ -313,10 +335,10 @@ async function checkDoi(doi) {
   try {
     const res  = await fetch(`${SERVER_DUNGLEU}?doi=${encodeURIComponent(doi)}`);
     const data = await res.json();
-    hide('view-scan');
+    hide('view-loading');
     renderResult(data);
   } catch {
-    hide('view-scan');
+    hide('view-loading');
     show('view-start');
     alert('Lỗi kết nối server. Vui lòng thử lại.');
   }
