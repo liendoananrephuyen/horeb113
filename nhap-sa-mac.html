@@ -26,7 +26,7 @@ html,body { width:100%; height:100%; background:#0a0a14; color:#fff; font-family
 .tram-label   { font-size:11px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:#6b7280; }
 .tram-btns    { display:flex; gap:10px; }
 .tram-btn {
-  width:80px; padding:14px 0; border-radius:14px;
+  width:70px; padding:14px 0; border-radius:14px;
   background:#16152a; border:2px solid #2a2940;
   color:#6b7280; font-size:15px; font-weight:800;
   cursor:pointer; transition:all .15s;
@@ -132,7 +132,9 @@ html,body { width:100%; height:100%; background:#0a0a14; color:#fff; font-family
   -webkit-tap-highlight-color:transparent;
 }
 .star.on { color:#fbbf24; }
+.star.disabled { color:#1e1e2e; cursor:not-allowed; pointer-events:none; }
 .star:active { transform:scale(1.18); }
+.rate-note { font-size:12px; color:#f59e0b; font-weight:600; margin-top:-4px; }
 .score-label { font-size:14px; color:#6b7280; min-height:20px; }
 .score-label.set { color:#fbbf24; font-weight:700; }
 .btn-submit {
@@ -147,6 +149,33 @@ html,body { width:100%; height:100%; background:#0a0a14; color:#fff; font-family
 .btn-cancel {
   background:none; border:none; color:#4b5563;
   font-size:14px; cursor:pointer; padding:8px;
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* ── ĐÃ ĐẠT ── */
+#view-dat {
+  position:fixed; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.75);
+}
+.dat-card {
+  background:#12111d; border-radius:24px; padding:40px 48px;
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+  animation:pop .25s ease; max-width:320px; width:90%;
+}
+.dat-icon {
+  width:76px; height:76px; border-radius:50%; background:#0ea5e9;
+  display:flex; align-items:center; justify-content:center;
+  font-size:38px; font-weight:900;
+}
+.dat-name { font-size:17px; font-weight:800; color:#fff; text-align:center; }
+.dat-msg  { font-size:14px; color:#38bdf8; font-weight:600; text-align:center; }
+.dat-sub  { font-size:12px; color:#4b5563; text-align:center; }
+.btn-dat-next {
+  margin-top:6px; width:100%; padding:14px;
+  background:#1e293b; border:1px solid #334155;
+  color:#94a3b8; font-size:15px; font-weight:700;
+  border-radius:12px; cursor:pointer;
   -webkit-tap-highlight-color:transparent;
 }
 
@@ -187,6 +216,7 @@ html,body { width:100%; height:100%; background:#0a0a14; color:#fff; font-family
       <button class="tram-btn" data-tram="1">Trạm 1</button>
       <button class="tram-btn" data-tram="2">Trạm 2</button>
       <button class="tram-btn" data-tram="3">Trạm 3</button>
+      <button class="tram-btn" data-tram="4">Trạm 4</button>
     </div>
   </div>
 
@@ -225,9 +255,21 @@ html,body { width:100%; height:100%; background:#0a0a14; color:#fff; font-family
       <button class="star" data-v="4">★</button>
       <button class="star" data-v="5">★</button>
     </div>
+    <p class="rate-note" id="rate-note" hidden>⚠ Chấm lại — tối đa 3 sao</p>
     <p class="score-label" id="score-label">Chọn số sao</p>
     <button class="btn-submit" id="btn-submit" disabled>Gửi điểm</button>
     <button class="btn-cancel" id="btn-cancel">Hủy, quét lại</button>
+  </div>
+</div>
+
+<!-- ĐÃ ĐẠT VIEW -->
+<div id="view-dat" hidden>
+  <div class="dat-card">
+    <div class="dat-icon">✓</div>
+    <p class="dat-name" id="dat-name"></p>
+    <p class="dat-msg"  id="dat-msg"></p>
+    <p class="dat-sub">Không cần chấm lại</p>
+    <button class="btn-dat-next" id="btn-dat-next">Quét người tiếp theo</button>
   </div>
 </div>
 
@@ -242,7 +284,8 @@ html,body { width:100%; height:100%; background:#0a0a14; color:#fff; font-family
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
-const SERVER      = 'https://hylecuoicung.com/api/bangdiem';
+const SERVER       = 'https://hylecuoicung.com/api/bangdiem';
+const SERVER_CHECK = 'https://hylecuoicung.com/api/bangdiem/check';
 const STAR_LABELS = ['', 'Chưa đạt', 'Đạt', 'Khá', 'Tốt', 'Xuất sắc'];
 
 const vid = document.getElementById('vid');
@@ -314,7 +357,7 @@ function tick() {
     const parsed = parseQrUrl(result.data);
     if (parsed) {
       stopCamera();
-      showRate(parsed);
+      checkAndShowRate(parsed);
       return;
     } else {
       // Sai định dạng: giữ camera, chỉ hiện toast
@@ -347,10 +390,31 @@ function showToast(msg) {
   toastTimer = setTimeout(() => t.remove(), 2500);
 }
 
+// ── CHECK RỒI SHOW RATE ──
+async function checkAndShowRate(parsed) {
+  const { doi, ten } = parsed;
+  try {
+    const res  = await fetch(`${SERVER_CHECK}?tram=${curTram}&doi=${encodeURIComponent(doi)}&ten=${encodeURIComponent(ten)}`);
+    const data = await res.json();
+    const prev = data.diem; // null hoặc số
+
+    if (prev !== null && prev >= 3) {
+      showDat(ten, prev);       // đã đạt, không cho chấm lại
+    } else {
+      showRate(parsed, prev);   // chấm bình thường hoặc chấm lại max 3 sao
+    }
+  } catch {
+    showRate(parsed, null);     // nếu check lỗi thì cho chấm bình thường
+  }
+}
+
 // ── SHOW RATE ──
-function showRate({ doi, ten }) {
-  curData  = { doi, ten };
-  curScore = 0;
+// maxStars: null = 5 sao bình thường; số = chấm lại, giới hạn 3 sao
+function showRate({ doi, ten }, prevDiem = null) {
+  curData    = { doi, ten };
+  curScore   = 0;
+  const maxStars = (prevDiem !== null && prevDiem < 3) ? 3 : 5;
+
   $('rate-tram-badge').textContent = 'Trạm ' + curTram;
   $('rate-team').textContent       = 'Đội ' + doi;
   $('rate-name').textContent       = ten;
@@ -358,7 +422,23 @@ function showRate({ doi, ten }) {
   $('score-label').classList.remove('set');
   $('btn-submit').disabled    = true;
   $('btn-submit').textContent = 'Gửi điểm';
-  document.querySelectorAll('.star').forEach(s => s.classList.remove('on'));
+
+  // Cấu hình sao: bật/tắt tùy maxStars
+  document.querySelectorAll('.star').forEach(s => {
+    s.classList.remove('on');
+    const v = +s.dataset.v;
+    s.classList.toggle('disabled', v > maxStars);
+  });
+
+  // Ghi chú nếu là chấm lại
+  const noteEl = $('rate-note');
+  if (prevDiem !== null && prevDiem < 3) {
+    noteEl.textContent = `⚠ Điểm cũ: ${prevDiem} sao — chấm lại tối đa 3 sao`;
+    noteEl.hidden = false;
+  } else {
+    noteEl.hidden = true;
+  }
+
   hide('view-scan');
   show('view-rate');
 }
@@ -366,14 +446,30 @@ function showRate({ doi, ten }) {
 // ── STARS ──
 document.querySelectorAll('.star').forEach(s => {
   s.addEventListener('click', () => {
+    if (s.classList.contains('disabled')) return;
     curScore = +s.dataset.v;
-    document.querySelectorAll('.star').forEach(star =>
-      star.classList.toggle('on', +star.dataset.v <= curScore)
-    );
+    document.querySelectorAll('.star').forEach(star => {
+      if (!star.classList.contains('disabled'))
+        star.classList.toggle('on', +star.dataset.v <= curScore);
+    });
     $('score-label').textContent = curScore + ' sao — ' + STAR_LABELS[curScore];
     $('score-label').classList.add('set');
     $('btn-submit').disabled = false;
   });
+});
+
+// ── ĐÃ ĐẠT ──
+function showDat(ten, diem) {
+  const stars = '★'.repeat(diem) + '☆'.repeat(5 - diem);
+  $('dat-name').textContent = ten;
+  $('dat-msg').textContent  = `Đã đạt ${diem} sao  ${stars}`;
+  hide('view-scan');
+  show('view-dat');
+}
+
+$('btn-dat-next').addEventListener('click', async () => {
+  hide('view-dat');
+  await startCamera();
 });
 
 // ── SUBMIT ──
