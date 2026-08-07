@@ -257,6 +257,7 @@ html,body { width:100%; height:100%; background:#0a0a14; color:#fff; font-family
     <p class="dat-msg"  id="dat-msg"></p>
     <p class="dat-sub">Không cần chấm lại</p>
     <button class="btn-dat-next" id="btn-dat-next">Quét người tiếp theo</button>
+    <button class="btn-cancel" id="btn-dat-tram">↩ Quay lại chọn trạm</button>
   </div>
 </div>
 
@@ -356,9 +357,10 @@ function tick() {
 function parseQrUrl(url) {
   const m = url.match(/\/doi-(\d+)\/([^/?#]+)\.html/i);
   if (!m) return null;
-  const doi = m[1];
-  const ten = m[2].split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-  return { doi, ten };
+  const doi  = m[1];
+  const slug = m[2];   // teresa-tran-quang-huy — giữ nguyên để so sánh temp
+  const ten  = slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  return { doi, ten, slug };
 }
 
 // ── TOAST ──
@@ -376,26 +378,30 @@ function showToast(msg) {
 
 // ── CHECK RỒI SHOW RATE ──
 async function checkAndShowRate(parsed) {
-  const { doi, ten } = parsed;
+  const { doi, slug } = parsed;
   try {
-    const res  = await fetch(`${SERVER_CHECK}?tram=${curTram}&doi=${encodeURIComponent(doi)}&ten=${encodeURIComponent(ten)}`);
+    const res  = await fetch(`${SERVER_CHECK}?tram=${curTram}&doi=${encodeURIComponent(doi)}&slug=${encodeURIComponent(slug)}`);
     const data = await res.json();
-    const prev = data.diem; // null hoặc số
+
+    // data = { ten, diem, trams: { 1: null|N, 2:..., 3:..., 4:... } }
+    const ten  = data.ten  || parsed.ten;          // tên có dấu, fallback slug
+    const prev = data.trams?.[curTram] ?? null;    // điểm trạm hiện tại
+    const enriched = { ...parsed, ten };
 
     if (prev !== null && prev >= 3) {
-      showDat(ten, prev);       // đã đạt, không cho chấm lại
+      showDat(ten, prev);
     } else {
-      showRate(parsed, prev);   // chấm bình thường hoặc chấm lại max 3 sao
+      showRate(enriched, prev);
     }
   } catch {
-    showRate(parsed, null);     // nếu check lỗi thì cho chấm bình thường
+    showRate(parsed, null);
   }
 }
 
 // ── SHOW RATE ──
 // maxStars: null = 5 sao bình thường; số = chấm lại, giới hạn 3 sao
-function showRate({ doi, ten }, prevDiem = null) {
-  curData    = { doi, ten };
+function showRate({ doi, ten, slug }, prevDiem = null) {
+  curData    = { doi, ten, slug };
   curScore   = 0;
   const maxStars = (prevDiem !== null && prevDiem < 3) ? 3 : 5;
 
@@ -456,6 +462,11 @@ $('btn-dat-next').addEventListener('click', async () => {
   await startCamera();
 });
 
+$('btn-dat-tram').addEventListener('click', () => {
+  hide('view-dat');
+  show('view-start');
+});
+
 // ── SUBMIT ──
 $('btn-submit').addEventListener('click', async () => {
   if (!curData || !curScore) return;
@@ -467,7 +478,7 @@ $('btn-submit').addEventListener('click', async () => {
     const res = await fetch(SERVER, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tram: curTram, doi: curData.doi, ten: curData.ten, diem: curScore }),
+      body: JSON.stringify({ tram: curTram, doi: curData.doi, ten: curData.ten, diem: curScore, slug: curData.slug }),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => '');
