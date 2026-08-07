@@ -38,18 +38,10 @@ html,body { width:100%; height:100%; background:#0a0a14; color:#fff; font-family
   box-shadow:0 4px 18px rgba(99,102,241,.4);
 }
 
-.btn-open-cam {
-  margin-top:24px;
-  display:flex; align-items:center; gap:10px;
-  padding:17px 36px; border-radius:16px;
-  background:linear-gradient(90deg,#6366f1,#a855f7);
-  color:#fff; font-size:17px; font-weight:800;
-  border:none; cursor:pointer;
-  transition:opacity .2s, transform .12s;
-  -webkit-tap-highlight-color:transparent;
+.tram-hint {
+  margin-top:16px; font-size:12px; color:#4b5563;
+  letter-spacing:.04em;
 }
-.btn-open-cam:disabled { opacity:.3; cursor:not-allowed; transform:none; }
-.btn-open-cam:not(:disabled):active { opacity:.85; transform:scale(.97); }
 
 /* ── SCAN VIEW ── */
 #view-scan { position:fixed; inset:0; }
@@ -220,12 +212,7 @@ html,body { width:100%; height:100%; background:#0a0a14; color:#fff; font-family
     </div>
   </div>
 
-  <button class="btn-open-cam" id="btn-open-cam" disabled>
-    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-      <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
-    </svg>
-    Mở camera
-  </button>
+  <p class="tram-hint">Chọn trạm để mở camera</p>
 </div>
 
 <!-- SCAN VIEW -->
@@ -303,18 +290,15 @@ let curData  = null;
 let curScore = 0;
 let curTram  = null;  // giữ nguyên sau khi gửi, chỉ reset khi reload
 
-// ── CHỌN TRẠM ──
+// ── CHỌN TRẠM → mở camera luôn ──
 document.querySelectorAll('.tram-btn').forEach(b => {
   b.addEventListener('click', () => {
     curTram = +b.dataset.tram;
     document.querySelectorAll('.tram-btn').forEach(x => x.classList.remove('on'));
     b.classList.add('on');
-    $('btn-open-cam').disabled = false;
+    startCamera();
   });
 });
-
-// ── MỞ CAMERA ──
-$('btn-open-cam').addEventListener('click', startCamera);
 
 async function startCamera() {
   try {
