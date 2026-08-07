@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Dựng lều · Sa mạc Horeb 113</title>
+<style>
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html,body { width:100%; height:100%; background:#0a0a14; color:#fff;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; overflow:hidden; }
+
+/* ── START ── */
+#view-start {
+  position:fixed; inset:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
+}
+.start-logo {
+  font-size:64px; line-height:1; margin-bottom:4px;
+}
+.start-title { font-size:22px; font-weight:800; letter-spacing:-.3px; }
+.start-sub   { font-size:13px; color:#6b7280; }
+.btn-scan {
+  margin-top:28px;
+  display:flex; align-items:center; gap:10px;
+  padding:17px 40px; border-radius:16px;
+  background:linear-gradient(90deg,#f59e0b,#ef4444);
+  color:#fff; font-size:17px; font-weight:800;
+  border:none; cursor:pointer;
+  transition:opacity .2s, transform .12s;
+  -webkit-tap-highlight-color:transparent;
+}
+.btn-scan:active { opacity:.85; transform:scale(.97); }
+
+/* ── SCAN ── */
+#view-scan { position:fixed; inset:0; }
+#vid { width:100%; height:100%; object-fit:cover; }
+#cvs { display:none; }
+.scan-ui {
+  position:absolute; inset:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  pointer-events:none;
+}
+.scan-label {
+  position:absolute; top:18px; left:50%; transform:translateX(-50%);
+  background:rgba(245,158,11,.85); backdrop-filter:blur(6px);
+  color:#fff; font-size:13px; font-weight:800; letter-spacing:.06em;
+  padding:7px 18px; border-radius:20px; white-space:nowrap;
+}
+.scan-box {
+  width:230px; height:230px; border-radius:18px;
+  border:2px solid rgba(251,191,36,.9);
+  position:relative; box-shadow:0 0 0 4000px rgba(0,0,0,.45);
+}
+.scan-line {
+  position:absolute; left:8px; right:8px; height:2px; border-radius:1px;
+  background:linear-gradient(90deg,transparent,#fbbf24,transparent);
+  animation:sweep 2s ease-in-out infinite;
+}
+@keyframes sweep { 0%,100%{top:12%;} 50%{top:82%;} }
+.scan-tip {
+  margin-top:28px; font-size:14px; color:rgba(255,255,255,.75);
+  letter-spacing:.04em; text-align:center; padding:0 20px;
+}
+
+/* ── TOAST ── */
+.toast {
+  position:fixed; bottom:100px; left:50%; transform:translateX(-50%);
+  background:rgba(239,68,68,.92); color:#fff;
+  padding:11px 20px; border-radius:12px;
+  font-size:14px; font-weight:600; white-space:nowrap;
+  animation:fadeout 2.5s ease forwards; z-index:999; pointer-events:none;
+}
+@keyframes fadeout { 0%,55%{opacity:1;} 100%{opacity:0;} }
+
+/* ── RESULT CHUNG ── */
+#view-ok, #view-wait {
+  position:fixed; inset:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+  padding:0; overflow-y:auto;
+}
+.result-hero {
+  width:100%; padding:60px 28px 32px;
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+  position:relative; overflow:hidden;
+}
+.hero-emoji { font-size:72px; line-height:1; }
+.hero-doi   { font-size:13px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; opacity:.7; }
+.hero-title { font-size:26px; font-weight:900; text-align:center; line-height:1.3; text-wrap:balance; }
+.hero-count { font-size:16px; font-weight:700; opacity:.85; text-align:center; }
+
+/* OK */
+#view-ok .result-hero { background:linear-gradient(160deg,#064e2a,#065f46,#0a0a14); }
+.ok-badge {
+  background:rgba(34,197,94,.15); border:1px solid rgba(34,197,94,.4);
+  color:#4ade80; font-size:13px; font-weight:800; letter-spacing:.12em;
+  padding:6px 16px; border-radius:20px;
+}
+
+/* WAIT */
+#view-wait .result-hero { background:linear-gradient(160deg,#1e1b4b,#312e81,#0a0a14); }
+.wait-badge {
+  background:rgba(99,102,241,.15); border:1px solid rgba(99,102,241,.4);
+  color:#818cf8; font-size:13px; font-weight:800; letter-spacing:.12em;
+  padding:6px 16px; border-radius:20px;
+}
+.progress-wrap {
+  width:100%; max-width:320px; margin:4px 0;
+}
+.progress-bar {
+  height:10px; border-radius:5px; background:#1e1e3a;
+  overflow:hidden; margin-top:6px;
+}
+.progress-fill {
+  height:100%; border-radius:5px;
+  background:linear-gradient(90deg,#6366f1,#a855f7);
+  transition:width .5s ease;
+}
+.progress-label { font-size:12px; color:#6b7280; margin-top:4px; text-align:right; }
+
+/* DETAIL LIST */
+.detail-section {
+  width:100%; max-width:430px; padding:20px 20px 100px;
+  display:flex; flex-direction:column; gap:10px;
+}
+.detail-heading {
+  font-size:11px; font-weight:800; letter-spacing:.15em;
+  text-transform:uppercase; color:#6b7280; margin-bottom:2px; padding:0 4px;
+}
+.person-card {
+  background:#12111d; border-radius:14px; padding:14px 16px;
+  display:flex; flex-direction:column; gap:6px;
+}
+.person-name { font-size:15px; font-weight:700; }
+.person-trams { display:flex; gap:6px; flex-wrap:wrap; }
+.tram-chip {
+  font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px;
+}
+.tram-chip.dat  { background:rgba(34,197,94,.15); color:#4ade80; border:1px solid rgba(34,197,94,.3); }
+.tram-chip.fail { background:rgba(239,68,68,.1);  color:#f87171; border:1px solid rgba(239,68,68,.25); }
+.tram-chip.none { background:#1a1a2e; color:#4b5563; border:1px solid #2a2a3e; }
+
+/* BOTTOM BTN */
+.btn-again {
+  position:fixed; bottom:0; left:0; right:0;
+  padding:20px 28px calc(20px + env(safe-area-inset-bottom));
+  background:linear-gradient(to top,#0a0a14 70%,transparent);
+  display:flex; justify-content:center;
+}
+.btn-again button {
+  padding:16px 40px; border-radius:16px;
+  background:#16152a; border:1px solid #2a2940;
+  color:#9ca3af; font-size:16px; font-weight:700;
+  cursor:pointer; -webkit-tap-highlight-color:transparent;
+}
+
+/* CONFETTI */
+.confetti-wrap { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+.conf {
+  position:absolute; top:-12px; width:10px; height:10px; border-radius:2px;
+  animation:fall linear forwards;
+}
+@keyframes fall {
+  to { transform:translateY(110vh) rotate(720deg); opacity:0; }
+}
+
+[hidden] { display:none !important; }
+</style>
+</head>
+<body>
+
+<!-- START -->
+<div id="view-start">
+  <div class="start-logo">🏕️</div>
+  <p class="start-title">Kiểm tra dựng lều</p>
+  <p class="start-sub">Quét mã QR của bất kỳ thành viên trong đội</p>
+  <button class="btn-scan" id="btn-scan">
+    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+    </svg>
+    Quét mã QR
+  </button>
+</div>
+
+<!-- SCAN -->
+<div id="view-scan" hidden>
+  <video id="vid" playsinline autoplay muted></video>
+  <canvas id="cvs"></canvas>
+  <div class="scan-ui">
+    <p class="scan-label">Quét mã bất kỳ trong đội</p>
+    <div class="scan-box"><div class="scan-line"></div></div>
+    <p class="scan-tip">Đưa camera vào mã QR trên thẻ tên</p>
+  </div>
+</div>
+
+<!-- KẾT QUẢ: ĐỦ ĐIỀU KIỆN -->
+<div id="view-ok" hidden>
+  <div class="result-hero">
+    <div class="confetti-wrap" id="confetti"></div>
+    <div class="hero-emoji">🎉</div>
+    <span class="ok-badge">Đủ điều kiện</span>
+    <p class="hero-doi" id="ok-doi"></p>
+    <h1 class="hero-title">Xin chúc mừng!<br>Đội đã đủ điều kiện<br>để dựng lều 🏕️</h1>
+    <p class="hero-count" id="ok-count"></p>
+  </div>
+  <div class="detail-section" id="ok-detail"></div>
+  <div class="btn-again"><button id="btn-ok-again">Quét đội khác</button></div>
+</div>
+
+<!-- KẾT QUẢ: CHƯA ĐỦ -->
+<div id="view-wait" hidden>
+  <div class="result-hero">
+    <div class="hero-emoji">⏳</div>
+    <span class="wait-badge">Chưa đủ điều kiện</span>
+    <p class="hero-doi" id="wait-doi"></p>
+    <h1 class="hero-title">Từ từ bạn nhé,<br>chờ đủ số người hoàn thành<br>rồi dựng lều thôi! 💪</h1>
+    <p class="hero-count" id="wait-count"></p>
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="wait-bar"></div></div>
+      <p class="progress-label" id="wait-bar-label"></p>
+    </div>
+  </div>
+  <div class="detail-section" id="wait-detail"></div>
+  <div class="btn-again"><button id="btn-wait-again">Quét đội khác</button></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+const SERVER_DUNGLEU = 'https://hylecuoicung.com/api/dungLeu';
+const MIN_PASS       = 3;   // số người tối thiểu phải đạt đủ 4 trạm
+
+const vid = document.getElementById('vid');
+const cvs = document.getElementById('cvs');
+const ctx = cvs.getContext('2d', { willReadFrequently: true });
+
+const $    = id => document.getElementById(id);
+const show = id => $(id).hidden = false;
+const hide = id => $(id).hidden = true;
+
+let stream   = null;
+let scanning = false;
+let rafId    = null;
+
+// ── MỞ CAMERA ──
+$('btn-scan').addEventListener('click', startCamera);
+$('btn-ok-again').addEventListener('click', () => { hide('view-ok');   startCamera(); });
+$('btn-wait-again').addEventListener('click', () => { hide('view-wait'); startCamera(); });
+
+async function startCamera() {
+  hide('view-start');
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } }
+    });
+    vid.srcObject = stream;
+    vid.addEventListener('loadedmetadata', () => { scanning = true; tick(); }, { once: true });
+    show('view-scan');
+  } catch {
+    show('view-start');
+    alert('Không mở được camera.\nHãy cấp quyền camera rồi thử lại.');
+  }
+}
+
+function stopCamera() {
+  scanning = false;
+  cancelAnimationFrame(rafId);
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+    vid.srcObject = null;
+  }
+}
+
+// ── QR LOOP ──
+function tick() {
+  if (!scanning) return;
+  if (!vid.videoWidth) { rafId = requestAnimationFrame(tick); return; }
+  cvs.width  = vid.videoWidth;
+  cvs.height = vid.videoHeight;
+  ctx.drawImage(vid, 0, 0);
+  const img    = ctx.getImageData(0, 0, cvs.width, cvs.height);
+  const result = jsQR(img.data, img.width, img.height, { inversionAttempts: 'attemptBoth' });
+  if (result) {
+    const doi = parseDoiFromUrl(result.data);
+    if (doi) {
+      stopCamera();
+      checkDoi(doi);
+      return;
+    } else {
+      showToast('Tính năng này chỉ dành cho sa mạc sinh.');
+    }
+  }
+  rafId = requestAnimationFrame(tick);
+}
+
+function parseDoiFromUrl(url) {
+  const m = url.match(/\/doi-(\d+)\//i);
+  return m ? m[1] : null;
+}
+
+// ── TOAST ──
+let toastTimer = null;
+function showToast(msg) {
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.remove(), 2500);
+}
+
+// ── GỌI API VÀ HIỆN KẾT QUẢ ──
+async function checkDoi(doi) {
+  try {
+    const res  = await fetch(`${SERVER_DUNGLEU}?doi=${encodeURIComponent(doi)}`);
+    const data = await res.json();
+    hide('view-scan');
+    renderResult(data);
+  } catch {
+    hide('view-scan');
+    show('view-start');
+    alert('Lỗi kết nối server. Vui lòng thử lại.');
+  }
+}
+
+function renderResult({ doi, passed, total, detail }) {
+  const doiLabel = 'Đội ' + doi;
+
+  if (passed >= MIN_PASS) {
+    // ── ĐỦ ĐIỀU KIỆN ──
+    $('ok-doi').textContent   = doiLabel;
+    $('ok-count').textContent = `${passed} người đã hoàn thành cả 4 trạm`;
+    $('ok-detail').innerHTML  = buildDetailHtml(detail);
+    spawnConfetti();
+    show('view-ok');
+  } else {
+    // ── CHƯA ĐỦ ──
+    const need = MIN_PASS - passed;
+    $('wait-doi').textContent       = doiLabel;
+    $('wait-count').textContent     = `${passed}/${MIN_PASS} người đã hoàn thành — cần thêm ${need} người nữa`;
+    $('wait-bar').style.width       = Math.round(passed / MIN_PASS * 100) + '%';
+    $('wait-bar-label').textContent = `${passed} / ${MIN_PASS} người`;
+    $('wait-detail').innerHTML      = buildDetailHtml(detail);
+    show('view-wait');
+  }
+}
+
+function buildDetailHtml(detail) {
+  if (!detail.length) return '<p style="color:#4b5563;font-size:13px;padding:8px 4px">Chưa có dữ liệu điểm nào cho đội này.</p>';
+
+  const TRAMS = ['Trạm 1', 'Trạm 2', 'Trạm 3', 'Trạm 4'];
+
+  const passed = detail.filter(p => p.allPassed);
+  const notYet = detail.filter(p => !p.allPassed);
+
+  let html = '';
+
+  if (passed.length) {
+    html += `<p class="detail-heading">✓ Đã hoàn thành (${passed.length} người)</p>`;
+    html += passed.map(p => personHtml(p, TRAMS)).join('');
+  }
+  if (notYet.length) {
+    html += `<p class="detail-heading" style="margin-top:8px">⋯ Chưa hoàn thành (${notYet.length} người)</p>`;
+    html += notYet.map(p => personHtml(p, TRAMS)).join('');
+  }
+  return html;
+}
+
+function personHtml({ ten, tramDat }, TRAMS) {
+  const chips = TRAMS.map(t => {
+    const td = tramDat.find(x => x.tram === t);
+    if (!td || td.diem === 0) return `<span class="tram-chip none">${t}</span>`;
+    return `<span class="tram-chip ${td.dat ? 'dat' : 'fail'}">${t} ${td.dat ? td.diem+'★' : td.diem+'★'}</span>`;
+  }).join('');
+  return `<div class="person-card">
+    <p class="person-name">${ten}</p>
+    <div class="person-trams">${chips}</div>
+  </div>`;
+}
+
+// ── CONFETTI ──
+function spawnConfetti() {
+  const wrap   = $('confetti');
+  wrap.innerHTML = '';
+  const colors = ['#fbbf24','#34d399','#60a5fa','#f87171','#a78bfa','#fb923c'];
+  for (let i = 0; i < 60; i++) {
+    const el = document.createElement('div');
+    el.className = 'conf';
+    el.style.cssText = [
+      `left:${Math.random()*100}%`,
+      `background:${colors[Math.floor(Math.random()*colors.length)]}`,
+      `animation-duration:${1.2 + Math.random()*1.4}s`,
+      `animation-delay:${Math.random()*0.8}s`,
+      `width:${6+Math.random()*8}px`,
+      `height:${6+Math.random()*8}px`,
+      `border-radius:${Math.random()>.5?'50%':'2px'}`,
+    ].join(';');
+    wrap.appendChild(el);
+  }
+}
+</script>
+</body>
+</html>
