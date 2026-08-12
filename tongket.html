@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tổng kết · Sa mạc Horeb 113</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0a0a14;
+  color: #e2e8f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+/* ── Layout container ── */
+.topbar-inner, .content {
+  max-width: 1160px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── Header ── */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(10,10,20,.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid #1e1e32;
+  padding: 14px 20px;
+}
+.topbar-inner {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap;
+}
+.topbar-left { display: flex; align-items: center; gap: 12px; }
+.logo {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 900; color: #fff; flex-shrink: 0;
+}
+.page-title { font-size: 16px; font-weight: 800; }
+.page-sub   { font-size: 11px; color: #6b7280; margin-top: 1px; }
+
+.topbar-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* ── Controls ── */
+.ctrl-input {
+  padding: 8px 14px; border-radius: 10px;
+  background: #161625; border: 1px solid #2a2940;
+  color: #e2e8f0; font-size: 13px; outline: none;
+}
+.ctrl-input:focus { border-color: #6366f1; }
+select.ctrl-input { cursor: pointer; }
+
+.btn-save {
+  padding: 9px 18px; border-radius: 10px;
+  background: linear-gradient(90deg, #6366f1, #a855f7);
+  color: #fff; font-size: 13px; font-weight: 700;
+  border: none; cursor: pointer; white-space: nowrap;
+  transition: opacity .15s;
+}
+.btn-save:hover { opacity: .88; }
+.btn-save:active { opacity: .75; }
+.btn-reload {
+  padding: 9px 14px; border-radius: 10px;
+  background: #161625; border: 1px solid #2a2940;
+  color: #6b7280; font-size: 13px; cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.btn-reload:hover { color: #e2e8f0; border-color: #6366f1; }
+
+/* ── Stats bar ── */
+.stats-bar {
+  display: flex; gap: 12px; padding: 12px 0;
+  overflow-x: auto; border-bottom: 1px solid #111120;
+}
+.content {
+  padding: 0 20px;
+}
+.stat-chip {
+  background: #161625; border: 1px solid #1e1e32;
+  border-radius: 10px; padding: 8px 14px; white-space: nowrap;
+  flex-shrink: 0;
+}
+.stat-chip .val {
+  font-size: 18px; font-weight: 800; color: #818cf8;
+  font-variant-numeric: tabular-nums;
+}
+.stat-chip .lbl { font-size: 10px; color: #6b7280; letter-spacing: .08em; margin-top: 1px; }
+
+/* ── Table wrapper ── */
+.table-wrap {
+  overflow-x: auto;
+  padding: 0 0 40px;
+  margin: 0 -20px;  /* chạy ra sát mép container cho table scroll ngon */
+}
+table {
+  width: 100%; border-collapse: collapse;
+  font-size: 13px; min-width: 700px;
+}
+thead th {
+  position: sticky; top: 0;
+  background: #0e0e1c;
+  border-bottom: 2px solid #1e1e32;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: #6b7280; white-space: nowrap;
+  cursor: pointer; user-select: none;
+  transition: color .15s;
+}
+thead th:hover { color: #a5b4fc; }
+thead th.asc::after  { content: ' ▲'; opacity: .7; }
+thead th.desc::after { content: ' ▼'; opacity: .7; }
+
+tbody tr {
+  border-bottom: 1px solid #111120;
+  transition: background .1s;
+}
+tbody tr:hover { background: #111120; }
+tbody td {
+  padding: 9px 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* cột cố định */
+td.stt  { color: #4b5563; width: 44px; text-align: center; }
+td.doi  { color: #818cf8; font-weight: 700; white-space: nowrap; }
+td.name { font-weight: 600; }
+td.ho   { color: #94a3b8; }
+
+/* điểm */
+td.score {
+  text-align: center; font-weight: 700; width: 62px;
+  border-radius: 6px;
+}
+.s-null { color: #374151; }
+.s1     { color: #ef4444; }
+.s2     { color: #f97316; }
+.s3     { color: #eab308; }
+.s4     { color: #84cc16; }
+.s5     { color: #22c55e; }
+
+/* điểm TB */
+td.tb {
+  text-align: center; font-weight: 800; width: 72px;
+}
+.tb-none  { color: #374151; }
+.tb-low   { color: #ef4444; }
+.tb-mid   { color: #eab308; }
+.tb-good  { color: #22c55e; }
+
+/* ── Loading / Empty ── */
+#state-loading, #state-error {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 14px; padding: 80px 20px;
+  color: #4b5563; font-size: 14px;
+}
+.spin {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 3px solid #1e1e2e; border-top-color: #6366f1;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="topbar-left">
+      <div class="logo">H</div>
+      <div>
+        <div class="page-title">Tổng kết điểm</div>
+        <div class="page-sub">Sa mạc Horeb 113</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <input  class="ctrl-input" id="search"    type="search" placeholder="Tìm tên…" style="width:140px">
+      <select class="ctrl-input" id="filterDoi">
+        <option value="">Tất cả đội</option>
+      </select>
+      <button class="btn-reload" onclick="loadData()" title="Tải lại">↺</button>
+      <button class="btn-save"   onclick="saveXlsx()">⬇ Lưu xlsx</button>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+
+<div class="stats-bar" id="stats-bar" style="display:none">
+  <div class="stat-chip"><div class="val" id="st-total">0</div><div class="lbl">Người tham gia</div></div>
+  <div class="stat-chip"><div class="val" id="st-done">0</div><div class="lbl">Hoàn thành 4 trạm</div></div>
+  <div class="stat-chip"><div class="val" id="st-avg">—</div><div class="lbl">TB toàn trại</div></div>
+  <div class="stat-chip"><div class="val" id="st-t1">—</div><div class="lbl">TB Trạm 1</div></div>
+  <div class="stat-chip"><div class="val" id="st-t2">—</div><div class="lbl">TB Trạm 2</div></div>
+  <div class="stat-chip"><div class="val" id="st-t3">—</div><div class="lbl">TB Trạm 3</div></div>
+  <div class="stat-chip"><div class="val" id="st-t4">—</div><div class="lbl">TB Trạm 4</div></div>
+</div>
+
+<div id="state-loading">
+  <div class="spin"></div>
+  <span>Đang tải dữ liệu…</span>
+</div>
+<div id="state-error" style="display:none">
+  <span id="err-msg">Lỗi tải dữ liệu</span>
+  <button class="btn-reload" onclick="loadData()" style="margin-top:8px">Thử lại</button>
+</div>
+
+<div class="table-wrap" id="table-wrap" style="display:none">
+  <table id="tbl">
+    <thead>
+      <tr>
+        <th data-col="stt">#</th>
+        <th data-col="tenThanh">Tên thánh</th>
+        <th data-col="hoTen">Họ và Tên</th>
+        <th data-col="doi">Đội</th>
+        <th data-col="tram1">Trạm 1</th>
+        <th data-col="tram2">Trạm 2</th>
+        <th data-col="tram3">Trạm 3</th>
+        <th data-col="tram4">Trạm 4</th>
+        <th data-col="trungBinh">Điểm TB</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+</div><!-- /content -->
+
+<script>
+const API = 'https://hylecuoicung.com/api/tongket';
+
+let allData    = [];
+let sortCol    = 'stt';
+let sortDir    = 1;   // 1 = asc, -1 = desc
+let filterDoi  = '';
+let searchStr  = '';
+
+// ── Load ──────────────────────────────────────────────────────────
+async function loadData() {
+  show('state-loading'); hide('table-wrap'); hide('state-error');
+  document.getElementById('stats-bar').style.display = 'none';
+  try {
+    const res = await fetch(API);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    allData = await res.json();
+    buildFilters();
+    buildStats();
+    render();
+    hide('state-loading');
+    document.getElementById('stats-bar').style.display = 'flex';
+    show('table-wrap');
+  } catch(e) {
+    hide('state-loading');
+    document.getElementById('err-msg').textContent = 'Lỗi: ' + e.message;
+    show('state-error');
+  }
+}
+
+// ── Filters ───────────────────────────────────────────────────────
+function buildFilters() {
+  const dois = [...new Set(allData.map(r => r.doi).filter(Boolean))].sort((a,b) => {
+    const na = +a.match(/\d+/)?.[0], nb = +b.match(/\d+/)?.[0];
+    return (na||0) - (nb||0);
+  });
+  const sel = document.getElementById('filterDoi');
+  sel.innerHTML = '<option value="">Tất cả đội</option>';
+  dois.forEach(d => {
+    const o = document.createElement('option'); o.value = d; o.textContent = d;
+    sel.appendChild(o);
+  });
+}
+
+document.getElementById('filterDoi').addEventListener('change', e => {
+  filterDoi = e.target.value; render();
+});
+document.getElementById('search').addEventListener('input', e => {
+  searchStr = e.target.value.toLowerCase().trim(); render();
+});
+
+// ── Stats ─────────────────────────────────────────────────────────
+function avg(arr) {
+  const v = arr.filter(x => x !== null && x > 0);
+  return v.length ? (v.reduce((a,b)=>a+b,0)/v.length).toFixed(2) : null;
+}
+function buildStats() {
+  const n = allData.length;
+  const done = allData.filter(r => r.tram1&&r.tram2&&r.tram3&&r.tram4).length;
+  document.getElementById('st-total').textContent = n;
+  document.getElementById('st-done').textContent  = done;
+  document.getElementById('st-avg').textContent   = avg(allData.map(r=>r.trungBinh)) ?? '—';
+  document.getElementById('st-t1').textContent    = avg(allData.map(r=>r.tram1)) ?? '—';
+  document.getElementById('st-t2').textContent    = avg(allData.map(r=>r.tram2)) ?? '—';
+  document.getElementById('st-t3').textContent    = avg(allData.map(r=>r.tram3)) ?? '—';
+  document.getElementById('st-t4').textContent    = avg(allData.map(r=>r.tram4)) ?? '—';
+}
+
+// ── Sort ──────────────────────────────────────────────────────────
+document.querySelectorAll('thead th').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    if (sortCol === col) sortDir *= -1;
+    else { sortCol = col; sortDir = 1; }
+    document.querySelectorAll('thead th').forEach(t => t.classList.remove('asc','desc'));
+    th.classList.add(sortDir === 1 ? 'asc' : 'desc');
+    render();
+  });
+});
+
+// ── Render ────────────────────────────────────────────────────────
+function scoreClass(v) {
+  if (!v) return 's-null';
+  return ['','s1','s2','s3','s4','s5'][v] || 's-null';
+}
+function tbClass(v) {
+  if (v === null) return 'tb-none';
+  if (v < 2)  return 'tb-low';
+  if (v < 3.5) return 'tb-mid';
+  return 'tb-good';
+}
+function fmtScore(v) { return v !== null ? v : '—'; }
+function fmtTb(v)    { return v !== null ? v.toFixed(2) : '—'; }
+
+function render() {
+  let rows = allData.filter(r => {
+    if (filterDoi && r.doi !== filterDoi) return false;
+    if (searchStr) {
+      const hay = (r.tenThanh + ' ' + r.hoTen + ' ' + r.doi).toLowerCase();
+      if (!hay.includes(searchStr)) return false;
+    }
+    return true;
+  });
+
+  rows = [...rows].sort((a, b) => {
+    let va = a[sortCol], vb = b[sortCol];
+    // số thứ tự đội để sort đúng
+    if (sortCol === 'doi') {
+      va = +String(va).match(/\d+/)?.[0] || 0;
+      vb = +String(vb).match(/\d+/)?.[0] || 0;
+    }
+    if (va === null) va = -Infinity;
+    if (vb === null) vb = -Infinity;
+    if (typeof va === 'string') return sortDir * va.localeCompare(vb, 'vi');
+    return sortDir * (va - vb);
+  });
+
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = rows.map((r, i) => `
+    <tr>
+      <td class="stt">${i + 1}</td>
+      <td class="name">${esc(r.tenThanh)}</td>
+      <td class="ho">${esc(r.hoTen)}</td>
+      <td class="doi">${esc(r.doi)}</td>
+      <td class="score ${scoreClass(r.tram1)}">${fmtScore(r.tram1)}</td>
+      <td class="score ${scoreClass(r.tram2)}">${fmtScore(r.tram2)}</td>
+      <td class="score ${scoreClass(r.tram3)}">${fmtScore(r.tram3)}</td>
+      <td class="score ${scoreClass(r.tram4)}">${fmtScore(r.tram4)}</td>
+      <td class="tb ${tbClass(r.trungBinh)}">${fmtTb(r.trungBinh)}</td>
+    </tr>`).join('');
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Save xlsx ─────────────────────────────────────────────────────
+function saveXlsx() {
+  if (!allData.length) return;
+
+  // Lấy dữ liệu đang hiển thị (theo filter/sort hiện tại)
+  const rows = [];
+  document.querySelectorAll('#tbody tr').forEach((tr, i) => {
+    const tds = tr.querySelectorAll('td');
+    rows.push({
+      'STT':          i + 1,
+      'Tên thánh':    tds[1].textContent,
+      'Họ và Tên':    tds[2].textContent,
+      'Đội':          tds[3].textContent,
+      'Trạm 1':       tds[4].textContent === '—' ? '' : +tds[4].textContent,
+      'Trạm 2':       tds[5].textContent === '—' ? '' : +tds[5].textContent,
+      'Trạm 3':       tds[6].textContent === '—' ? '' : +tds[6].textContent,
+      'Trạm 4':       tds[7].textContent === '—' ? '' : +tds[7].textContent,
+      'Điểm TB':      tds[8].textContent === '—' ? '' : +tds[8].textContent,
+    });
+  });
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+
+  // Căn độ rộng cột
+  ws['!cols'] = [
+    {wch:6}, {wch:18}, {wch:22}, {wch:10},
+    {wch:8}, {wch:8},  {wch:8},  {wch:8}, {wch:10}
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Tổng kết');
+
+  const now = new Date();
+  const stamp = `${now.getDate().toString().padStart(2,'0')}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getFullYear()}`;
+  XLSX.writeFile(wb, `tongket_H113_${stamp}.xlsx`);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+function show(id) { document.getElementById(id).style.display = ''; }
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+
+// ── Init ──────────────────────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>

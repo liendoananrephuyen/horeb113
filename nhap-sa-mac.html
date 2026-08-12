@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Nhập điểm · Sa mạc Horeb 113</title>
+<link rel="manifest" href="manifest-nhap.json">
+<meta name="theme-color" content="#6366f1">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nhập điểm">
+<link rel="apple-touch-icon" href="icons/nhap-192.png">
+<style>
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html,body { width:100%; height:100%; background:#0a0a14; color:#fff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; overflow:hidden; }
+
+/* ── START VIEW ── */
+#view-start {
+  position:fixed; inset:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+}
+.start-logo {
+  width:76px; height:76px; border-radius:20px;
+  background:linear-gradient(135deg,#6366f1,#a855f7);
+  display:flex; align-items:center; justify-content:center;
+  font-size:34px; font-weight:900; color:#fff; margin-bottom:2px;
+}
+.start-title { font-size:22px; font-weight:800; letter-spacing:-.3px; }
+.start-sub   { font-size:13px; color:#6b7280; }
+
+.tram-section { margin-top:22px; display:flex; flex-direction:column; align-items:center; gap:10px; }
+.tram-label   { font-size:11px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:#6b7280; }
+.tram-btns    { display:flex; gap:10px; }
+.tram-btn {
+  width:70px; padding:14px 0; border-radius:14px;
+  background:#16152a; border:2px solid #2a2940;
+  color:#6b7280; font-size:15px; font-weight:800;
+  cursor:pointer; transition:all .15s;
+  -webkit-tap-highlight-color:transparent; text-align:center;
+}
+.tram-btn.on {
+  background:linear-gradient(135deg,#6366f1,#a855f7);
+  border-color:transparent; color:#fff;
+  box-shadow:0 4px 18px rgba(99,102,241,.4);
+}
+
+.tram-hint {
+  margin-top:16px; font-size:12px; color:#4b5563;
+  letter-spacing:.04em;
+}
+
+/* ── SCAN VIEW ── */
+#view-scan { position:fixed; inset:0; }
+#vid { width:100%; height:100%; object-fit:cover; }
+#cvs { display:none; }
+
+.scan-ui {
+  position:absolute; inset:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  pointer-events:none;
+}
+.scan-tram {
+  position:absolute; top:18px; left:50%; transform:translateX(-50%);
+  background:rgba(99,102,241,.85); backdrop-filter:blur(6px);
+  color:#fff; font-size:13px; font-weight:800; letter-spacing:.06em;
+  padding:7px 18px; border-radius:20px; white-space:nowrap;
+}
+.scan-box {
+  width:230px; height:230px; border-radius:18px;
+  border:2px solid rgba(99,249,150,.8);
+  position:relative; box-shadow:0 0 0 4000px rgba(0,0,0,.42);
+}
+.scan-line {
+  position:absolute; left:8px; right:8px; height:2px; border-radius:1px;
+  background:linear-gradient(90deg,transparent,#4ade80,transparent);
+  animation:sweep 2s ease-in-out infinite;
+}
+@keyframes sweep { 0%,100%{top:12%;} 50%{top:82%;} }
+.scan-tip {
+  margin-top:28px; font-size:14px; color:rgba(255,255,255,.75);
+  letter-spacing:.04em; text-align:center; padding:0 20px;
+}
+
+/* ── TOAST ── */
+.toast {
+  position:fixed; bottom:100px; left:50%; transform:translateX(-50%);
+  background:rgba(239,68,68,.92); color:#fff;
+  padding:11px 20px; border-radius:12px;
+  font-size:14px; font-weight:600; white-space:nowrap;
+  animation:fadeout 2.5s ease forwards; z-index:999;
+  pointer-events:none;
+}
+@keyframes fadeout { 0%,55%{opacity:1;} 100%{opacity:0;} }
+
+/* ── RATE BOTTOM SHEET ── */
+#view-rate {
+  position:fixed; inset:0;
+  display:flex; align-items:flex-end; justify-content:center;
+  background:rgba(0,0,0,.6); backdrop-filter:blur(4px);
+}
+.rate-card {
+  width:100%; max-width:430px;
+  background:#12111d; border-radius:26px 26px 0 0;
+  padding:10px 28px 52px;
+  display:flex; flex-direction:column; align-items:center; gap:12px;
+}
+.rate-handle { width:40px; height:4px; border-radius:2px; background:#333; margin-bottom:8px; }
+.rate-meta {
+  display:flex; gap:8px; align-items:center;
+}
+.rate-tram-badge {
+  font-size:10px; font-weight:800; letter-spacing:.15em; text-transform:uppercase;
+  background:rgba(99,102,241,.2); color:#818cf8;
+  padding:4px 10px; border-radius:8px;
+}
+.rate-team {
+  font-size:11px; font-weight:800; letter-spacing:.18em;
+  text-transform:uppercase; color:#818cf8;
+}
+.rate-name {
+  font-size:23px; font-weight:800; text-align:center;
+  color:#fff; line-height:1.3; text-wrap:balance;
+}
+.stars { display:flex; gap:6px; margin:6px 0; }
+.star {
+  font-size:46px; background:none; border:none;
+  color:#2d2d40; cursor:pointer;
+  transition:color .12s, transform .1s;
+  line-height:1; padding:0 3px;
+  -webkit-tap-highlight-color:transparent;
+}
+.star.on { color:#fbbf24; }
+.star.disabled { color:#1e1e2e; cursor:not-allowed; pointer-events:none; }
+.star:active { transform:scale(1.18); }
+.rate-note { font-size:12px; color:#f59e0b; font-weight:600; margin-top:-4px; }
+.score-label { font-size:14px; color:#6b7280; min-height:20px; }
+.score-label.set { color:#fbbf24; font-weight:700; }
+.btn-submit {
+  width:100%; padding:16px;
+  background:linear-gradient(90deg,#6366f1,#a855f7);
+  color:#fff; font-size:16px; font-weight:800;
+  border:none; border-radius:14px; cursor:pointer;
+  transition:opacity .2s, transform .12s; margin-top:6px;
+}
+.btn-submit:disabled { opacity:.3; cursor:not-allowed; }
+.btn-submit:not(:disabled):active { transform:scale(.98); }
+.btn-cancel {
+  background:none; border:none; color:#4b5563;
+  font-size:14px; cursor:pointer; padding:8px;
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* ── ĐÃ ĐẠT ── */
+#view-dat {
+  position:fixed; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.75);
+}
+.dat-card {
+  background:#12111d; border-radius:24px; padding:40px 48px;
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+  animation:pop .25s ease; max-width:320px; width:90%;
+}
+.dat-icon {
+  width:76px; height:76px; border-radius:50%; background:#0ea5e9;
+  display:flex; align-items:center; justify-content:center;
+  font-size:38px; font-weight:900;
+}
+.dat-name { font-size:17px; font-weight:800; color:#fff; text-align:center; }
+.dat-msg  { font-size:14px; color:#38bdf8; font-weight:600; text-align:center; }
+.dat-sub  { font-size:12px; color:#4b5563; text-align:center; }
+.btn-dat-next {
+  margin-top:6px; width:100%; padding:14px;
+  background:#1e293b; border:1px solid #334155;
+  color:#94a3b8; font-size:15px; font-weight:700;
+  border-radius:12px; cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* ── DONE ── */
+#view-done {
+  position:fixed; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.75);
+}
+.done-card {
+  background:#12111d; border-radius:24px; padding:44px 56px;
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+  animation:pop .25s ease;
+}
+@keyframes pop { from{transform:scale(.8);opacity:0;} to{transform:scale(1);opacity:1;} }
+.done-icon {
+  width:76px; height:76px; border-radius:50%; background:#22c55e;
+  display:flex; align-items:center; justify-content:center;
+  font-size:38px; font-weight:900;
+}
+.done-name { font-size:16px; font-weight:700; color:#fff; text-align:center; }
+.done-sub  { font-size:13px; color:#4b5563; }
+
+/* ── LOADING SPINNER ── */
+.spin-ring {
+  width:44px; height:44px; border-radius:50%;
+  border:3px solid #1e1e2e;
+  border-top-color:#6366f1;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+[hidden] { display:none !important; }
+</style>
+</head>
+<body>
+
+<!-- START VIEW -->
+<div id="view-start">
+  <div class="start-logo">H</div>
+  <p class="start-title">Nhập điểm Sa mạc</p>
+  <p class="start-sub">Horeb 113</p>
+
+  <div class="tram-section">
+    <p class="tram-label">Chọn trạm</p>
+    <div class="tram-btns">
+      <button class="tram-btn" data-tram="1">Trạm 1</button>
+      <button class="tram-btn" data-tram="2">Trạm 2</button>
+      <button class="tram-btn" data-tram="3">Trạm 3</button>
+      <button class="tram-btn" data-tram="4">Trạm 4</button>
+    </div>
+  </div>
+
+  <p class="tram-hint">Chọn trạm để mở camera</p>
+</div>
+
+<!-- SCAN VIEW -->
+<div id="view-scan" hidden>
+  <video id="vid" playsinline autoplay muted></video>
+  <canvas id="cvs"></canvas>
+  <div class="scan-ui">
+    <p class="scan-tram" id="scan-tram"></p>
+    <div class="scan-box"><div class="scan-line"></div></div>
+    <p class="scan-tip">Đưa camera vào mã QR trên thẻ tên</p>
+  </div>
+</div>
+
+<!-- LOADING VIEW -->
+<div id="view-loading" hidden style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0a0a14;">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:14px;">
+    <div class="spin-ring"></div>
+    <p style="font-size:13px;color:#6b7280;letter-spacing:.06em;">Đang kiểm tra…</p>
+  </div>
+</div>
+
+<!-- RATE VIEW -->
+<div id="view-rate" hidden>
+  <div class="rate-card">
+    <div class="rate-handle"></div>
+    <div class="rate-meta">
+      <span class="rate-tram-badge" id="rate-tram-badge"></span>
+      <span class="rate-team" id="rate-team"></span>
+    </div>
+    <h2 class="rate-name" id="rate-name"></h2>
+    <div class="stars">
+      <button class="star" data-v="1">★</button>
+      <button class="star" data-v="2">★</button>
+      <button class="star" data-v="3">★</button>
+      <button class="star" data-v="4">★</button>
+      <button class="star" data-v="5">★</button>
+    </div>
+    <p class="rate-note" id="rate-note" hidden>⚠ Chấm lại — tối đa 3 sao</p>
+    <p class="score-label" id="score-label">Chọn số sao</p>
+    <button class="btn-submit" id="btn-submit" disabled>Gửi điểm</button>
+    <button class="btn-cancel" id="btn-cancel">Hủy, quét lại</button>
+  </div>
+</div>
+
+<!-- ĐÃ ĐẠT VIEW -->
+<div id="view-dat" hidden>
+  <div class="dat-card">
+    <div class="dat-icon">✓</div>
+    <p class="dat-name" id="dat-name"></p>
+    <p class="dat-msg"  id="dat-msg"></p>
+    <p class="dat-sub">Không cần chấm lại</p>
+    <button class="btn-dat-next" id="btn-dat-next">Quét người tiếp theo</button>
+    <button class="btn-cancel" id="btn-dat-tram">↩ Quay lại chọn trạm</button>
+  </div>
+</div>
+
+<!-- DONE VIEW -->
+<div id="view-done" hidden>
+  <div class="done-card">
+    <div class="done-icon">✓</div>
+    <p class="done-name" id="done-name"></p>
+    <p class="done-sub">Đã lưu vào bảng điểm</p>
+    <button class="btn-dat-next" id="btn-done-next">Quét người tiếp theo</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+const SERVER       = 'https://hylecuoicung.com/api/bangdiem';
+const SERVER_CHECK = 'https://hylecuoicung.com/api/bangdiem/check';
+const STAR_LABELS = ['', 'Chưa đạt', 'Đạt', 'Khá', 'Tốt', 'Xuất sắc'];
+
+const vid = document.getElementById('vid');
+const cvs = document.getElementById('cvs');
+const ctx = cvs.getContext('2d', { willReadFrequently: true });
+
+const $    = id => document.getElementById(id);
+const show = id => $(id).hidden = false;
+const hide = id => $(id).hidden = true;
+
+let stream   = null;
+let scanning = false;
+let rafId    = null;
+let curData  = null;
+let curScore = 0;
+let curTram  = null;  // giữ nguyên sau khi gửi, chỉ reset khi reload
+
+// ── CHỌN TRẠM → mở camera luôn ──
+document.querySelectorAll('.tram-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    curTram = +b.dataset.tram;
+    document.querySelectorAll('.tram-btn').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    startCamera();
+  });
+});
+
+async function startCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } }
+    });
+    vid.srcObject = stream;
+    $('scan-tram').textContent = 'Trạm ' + curTram;
+    vid.addEventListener('loadedmetadata', () => { scanning = true; tick(); }, { once: true });
+    hide('view-start');
+    show('view-scan');
+  } catch(e) {
+    alert('Không mở được camera.\nHãy cấp quyền camera rồi thử lại.');
+  }
+}
+
+function stopCamera() {
+  scanning = false;
+  cancelAnimationFrame(rafId);
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+    vid.srcObject = null;
+  }
+}
+
+// ── QR SCAN LOOP ──
+function tick() {
+  if (!scanning) return;
+  if (!vid.videoWidth) { rafId = requestAnimationFrame(tick); return; }
+
+  cvs.width  = vid.videoWidth;
+  cvs.height = vid.videoHeight;
+  ctx.drawImage(vid, 0, 0);
+
+  const img    = ctx.getImageData(0, 0, cvs.width, cvs.height);
+  const result = jsQR(img.data, img.width, img.height, { inversionAttempts: 'attemptBoth' });
+
+  if (result) {
+    const parsed = parseQrUrl(result.data);
+    if (parsed) {
+      stopCamera();
+      hide('view-scan');   // ẩn ngay, tránh video placeholder hiện ra trong lúc fetch
+      show('view-loading');
+      checkAndShowRate(parsed);
+      return;
+    } else {
+      // Sai định dạng: giữ camera, chỉ hiện toast
+      showToast('Tính năng này chỉ dành cho sa mạc sinh.');
+    }
+  }
+
+  rafId = requestAnimationFrame(tick);
+}
+
+// ── PARSE URL: .../doi-{N}/{ten-slug}.html ──
+function parseQrUrl(url) {
+  const m = url.match(/\/doi-(\d+)\/([^/?#]+)\.html/i);
+  if (!m) return null;
+  const doi  = m[1];
+  const slug = m[2];   // teresa-tran-quang-huy — giữ nguyên để so sánh temp
+  const ten  = slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  return { doi, ten, slug };
+}
+
+// ── TOAST ──
+let toastTimer = null;
+function showToast(msg) {
+  // chỉ 1 toast cùng lúc
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.remove(), 2500);
+}
+
+// ── CHECK RỒI SHOW RATE ──
+async function checkAndShowRate(parsed) {
+  const { doi, slug } = parsed;
+  try {
+    const res  = await fetch(`${SERVER_CHECK}?tram=${curTram}&doi=${encodeURIComponent(doi)}&slug=${encodeURIComponent(slug)}`);
+    const data = await res.json();
+
+    // data = { ten, diem, trams: { 1: null|N, 2:..., 3:..., 4:... } }
+    const ten  = data.ten  || parsed.ten;          // tên có dấu, fallback slug
+    const prev = data.trams?.[curTram] ?? null;    // điểm trạm hiện tại
+    const enriched = { ...parsed, ten };
+
+    if (prev !== null && prev >= 3) {
+      showDat(ten, prev);
+    } else {
+      showRate(enriched, prev);
+    }
+  } catch {
+    showRate(parsed, null);
+  }
+}
+
+// ── SHOW RATE ──
+// maxStars: null = 5 sao bình thường; số = chấm lại, giới hạn 3 sao
+function showRate({ doi, ten, slug }, prevDiem = null) {
+  curData    = { doi, ten, slug };
+  curScore   = 0;
+  const maxStars = (prevDiem !== null && prevDiem < 3) ? 3 : 5;
+
+  $('rate-tram-badge').textContent = 'Trạm ' + curTram;
+  $('rate-team').textContent       = 'Đội ' + doi;
+  $('rate-name').textContent       = ten;
+  $('score-label').textContent     = 'Chọn số sao';
+  $('score-label').classList.remove('set');
+  $('btn-submit').disabled    = true;
+  $('btn-submit').textContent = 'Gửi điểm';
+
+  // Cấu hình sao: bật/tắt tùy maxStars
+  document.querySelectorAll('.star').forEach(s => {
+    s.classList.remove('on');
+    const v = +s.dataset.v;
+    s.classList.toggle('disabled', v > maxStars);
+  });
+
+  // Ghi chú nếu là chấm lại
+  const noteEl = $('rate-note');
+  if (prevDiem !== null && prevDiem < 3) {
+    noteEl.textContent = `⚠ Điểm cũ: ${prevDiem} sao — chấm lại tối đa 3 sao`;
+    noteEl.hidden = false;
+  } else {
+    noteEl.hidden = true;
+  }
+
+  hide('view-scan');
+  hide('view-loading');
+  show('view-rate');
+}
+
+// ── STARS ──
+document.querySelectorAll('.star').forEach(s => {
+  s.addEventListener('click', () => {
+    if (s.classList.contains('disabled')) return;
+    curScore = +s.dataset.v;
+    document.querySelectorAll('.star').forEach(star => {
+      if (!star.classList.contains('disabled'))
+        star.classList.toggle('on', +star.dataset.v <= curScore);
+    });
+    $('score-label').textContent = curScore + ' sao — ' + STAR_LABELS[curScore];
+    $('score-label').classList.add('set');
+    $('btn-submit').disabled = false;
+  });
+});
+
+// ── ĐÃ ĐẠT ──
+function showDat(ten, diem) {
+  const stars = '★'.repeat(diem) + '☆'.repeat(5 - diem);
+  $('dat-name').textContent = ten;
+  $('dat-msg').textContent  = `Đã đạt ${diem} sao  ${stars}`;
+  hide('view-scan');
+  hide('view-loading');
+  show('view-dat');
+}
+
+$('btn-dat-next').addEventListener('click', async () => {
+  hide('view-dat');
+  await startCamera();
+});
+
+$('btn-dat-tram').addEventListener('click', () => {
+  hide('view-dat');
+  show('view-start');
+});
+
+// ── SUBMIT ──
+$('btn-submit').addEventListener('click', async () => {
+  if (!curData || !curScore) return;
+  const btn = $('btn-submit');
+  btn.disabled = true;
+  btn.textContent = 'Đang gửi…';
+
+  try {
+    const res = await fetch(SERVER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tram: curTram, doi: curData.doi, ten: curData.ten, diem: curScore, slug: curData.slug }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error('HTTP ' + res.status + (body ? ' — ' + body : ''));
+    }
+    showDone(curData.ten);
+  } catch(e) {
+    alert('Lỗi gửi dữ liệu:\n' + (e.message || e));
+    btn.disabled = false;
+    btn.textContent = 'Gửi điểm';
+  }
+});
+
+// ── CANCEL → quét lại luôn ──
+$('btn-cancel').addEventListener('click', async () => {
+  hide('view-rate');
+  await startCamera();
+});
+
+// ── DONE → giữ trạm, bấm nút mới quét tiếp ──
+function showDone(ten) {
+  hide('view-rate');
+  $('done-name').textContent = ten;
+  show('view-done');
+}
+
+$('btn-done-next').addEventListener('click', async () => {
+  hide('view-done');
+  await startCamera();
+});
+
+// ── PWA SERVICE WORKER ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
