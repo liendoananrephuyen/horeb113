@@ -54,6 +54,31 @@
         }
         .status.online { color: #34d399; }
 
+        /* ── Client count badge ── */
+        .count-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            margin-left: 4px;
+            padding: 2px 6px;
+            border-radius: 20px;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            font-size: 10px;
+            font-weight: 600;
+            color: #444;
+            letter-spacing: 0;
+            transition: color 0.3s, border-color 0.3s;
+        }
+        .status.online .count-badge {
+            color: #34d399;
+            border-color: rgba(52,211,153,0.25);
+        }
+        .count-badge::before {
+            content: '👤';
+            font-size: 9px;
+        }
+
         /* ── Card stack ── */
         .stack {
             display: flex;
@@ -183,6 +208,7 @@
         <div class="status" id="status">
             <div class="status-dot"></div>
             <span id="statusLabel">Đang kết nối</span>
+            <span class="count-badge" id="clientCount">—</span>
         </div>
     </header>
 
@@ -269,6 +295,10 @@
             const el = document.getElementById('status');
             el.classList.remove('online');
             document.getElementById('statusLabel').textContent = 'Mất kết nối';
+            document.getElementById('clientCount').textContent = '—';
+        });
+        socket.on('client-count', (n) => {
+            document.getElementById('clientCount').textContent = n;
         });
 
         // ── State ─────────────────────────────────────────────
