@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MASTER – H113</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #0a0a0a;
+            color: #f0f0f0;
+            font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+            min-height: 100dvh;
+            padding-bottom: 56px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ── Header ── */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 18px 14px;
+            border-bottom: 1px solid #1c1c1c;
+        }
+        .title {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #555;
+        }
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: #444;
+            transition: color 0.3s;
+        }
+        .status-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: #333;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+        .status.online .status-dot {
+            background: #34d399;
+            box-shadow: 0 0 7px rgba(52,211,153,0.7);
+        }
+        .status.online { color: #34d399; }
+
+        /* ── Card stack ── */
+        .stack {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            padding: 13px 13px 0;
+        }
+
+        /* ── Card ── */
+        .card {
+            border-radius: 16px;
+            border: 1.5px solid #202020;
+            overflow: hidden;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .card.active {
+            border-color: var(--c);
+            box-shadow: 0 0 0 1px rgba(var(--cr),0.15), 0 6px 28px rgba(var(--cr),0.12);
+        }
+        .card-body {
+            background: #131313;
+            padding: 13px 13px 13px;
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+        }
+        .card-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: var(--c);
+        }
+
+        /* ── Chips ── */
+        .chips { display: flex; gap: 6px; }
+        .chip {
+            flex: 1;
+            padding: 9px 6px;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            background: #1b1b1b;
+            border: 1.5px solid #2a2a2a;
+            border-radius: 9px;
+            color: #666;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+        }
+        .chip.on {
+            background: rgba(var(--cr), 0.12);
+            border-color: var(--c);
+            color: #f0f0f0;
+        }
+
+        /* ── Action button ── */
+        .action {
+            width: 100%;
+            padding: 17px;
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 0.3px;
+            border-radius: 11px;
+            border: none;
+            cursor: pointer;
+            background: rgba(var(--cr), 0.11);
+            color: var(--c);
+            transition: background 0.15s, color 0.15s, transform 0.08s;
+        }
+        .action:active { transform: scale(0.97); }
+        .action.stop {
+            background: rgba(244, 63, 94, 0.14);
+            color: #f43f5e;
+        }
+
+        /* ── Hold button (Chạm) ── */
+        .hold {
+            width: 100%;
+            padding: 30px 17px;
+            font-size: 17px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            border-radius: 11px;
+            border: none;
+            cursor: pointer;
+            background: rgba(249, 115, 22, 0.11);
+            color: #f97316;
+            user-select: none;
+            transition: background 0.1s, transform 0.08s;
+        }
+        .hold.pressed {
+            background: rgba(249, 115, 22, 0.26);
+            transform: scale(0.98);
+        }
+
+        /* ── Section divider ── */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 13px 0;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: #2e2e2e;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #1e1e1e;
+        }
+
+        /* ── Color vars per card ── */
+        .c-orange { --c: #f97316; --cr: 249,115,22; }
+        .c-cyan   { --c: #22d3ee; --cr: 34,211,238; }
+        .c-violet { --c: #a78bfa; --cr: 167,139,250; }
+        .c-rose   { --c: #f43f5e; --cr: 244,63,94;  }
+        .c-green  { --c: #34d399; --cr: 52,211,153;  }
+    </style>
+</head>
+<body>
+
+    <header>
+        <span class="title">Bảng điều khiển</span>
+        <div class="status" id="status">
+            <div class="status-dot"></div>
+            <span id="statusLabel">Đang kết nối</span>
+        </div>
+    </header>
+
+    <div class="stack">
+
+        <!-- CHẠM -->
+        <div class="card c-orange" id="cardTouch">
+            <div class="card-body">
+                <span class="card-label">Chạm</span>
+                <button class="hold" id="btnTouch">GIỮ ĐỂ BẬT ĐÈN</button>
+            </div>
+        </div>
+
+        <!-- NGẪU NHIÊN -->
+        <div class="card c-cyan" id="cardRandom">
+            <div class="card-body">
+                <span class="card-label">Ngẫu nhiên</span>
+                <div class="chips" id="randChips">
+                    <button class="chip" onclick="setRandSpeed(this,400,1200)">Chậm</button>
+                    <button class="chip on" onclick="setRandSpeed(this,100,500)">Vừa</button>
+                    <button class="chip" onclick="setRandSpeed(this,30,150)">Nhanh</button>
+                </div>
+                <button class="action" id="btnRandom" onclick="toggleRandom()">Bật ngẫu nhiên</button>
+            </div>
+        </div>
+
+        <!-- CỤM -->
+        <div class="card c-violet" id="cardCluster">
+            <div class="card-body">
+                <span class="card-label">Cụm</span>
+                <button class="action" id="btnCluster" onclick="toggleCluster()">Bật cụm</button>
+            </div>
+        </div>
+
+        <!-- STROBE -->
+        <div class="card c-rose" id="cardStrobe">
+            <div class="card-body">
+                <span class="card-label">Strobe</span>
+                <div class="chips" id="strobeChips">
+                    <button class="chip" onclick="setStrobeSpeed(this,200)">Chậm</button>
+                    <button class="chip on" onclick="setStrobeSpeed(this,100)">Vừa</button>
+                    <button class="chip" onclick="setStrobeSpeed(this,50)">Nhanh</button>
+                </div>
+                <button class="action" id="btnStrobe" onclick="toggleStrobe()">Bật strobe</button>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="divider">Theo đội</div>
+
+    <div class="stack" style="padding-top:10px;">
+
+        <!-- ĐỘI -->
+        <div class="card c-green" id="cardDoi">
+            <div class="card-body">
+                <span class="card-label">Theo đội</span>
+                <div class="chips" id="doiModeChips">
+                    <button class="chip on" onclick="setDoiMode(this,'all')">Thứ tự</button>
+                    <button class="chip" onclick="setDoiMode(this,'even')">Chẵn</button>
+                    <button class="chip" onclick="setDoiMode(this,'odd')">Lẻ</button>
+                </div>
+                <div class="chips" id="doiSpeedChips">
+                    <button class="chip" onclick="setDoiSpeed(this,700)">Chậm</button>
+                    <button class="chip on" onclick="setDoiSpeed(this,300)">Vừa</button>
+                    <button class="chip" onclick="setDoiSpeed(this,120)">Nhanh</button>
+                </div>
+                <button class="action" id="btnDoi" onclick="toggleDoi()">Bật theo đội</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const socket = io('https://hylecuoicung.com');
+
+        // ── Kết nối ──────────────────────────────────────────
+        socket.on('connect', () => {
+            const el = document.getElementById('status');
+            el.classList.add('online');
+            document.getElementById('statusLabel').textContent = 'Online';
+        });
+        socket.on('disconnect', () => {
+            const el = document.getElementById('status');
+            el.classList.remove('online');
+            document.getElementById('statusLabel').textContent = 'Mất kết nối';
+        });
+
+        // ── State ─────────────────────────────────────────────
+        let isRandomActive = false, isClusterActive = false;
+        let isStrobeActive = false, isDoiActive = false;
+        let clusterInterval = null, doiInterval = null;
+        let currentCluster = 0, doiPrevTeam = null;
+        let doiTeams = [], doiIdx = 0;
+        let randomMinMs = 100, randomMaxMs = 500;
+        let strobeSpeed = 100, doiSpeedMs = 300, doiMode = 'all';
+
+        // ── Helpers ───────────────────────────────────────────
+        const emit     = (action, extra) => socket.emit('master-command', { action, ...extra });
+        const emitTeam = (action, team)  => socket.emit('master-command', { action, team });
+
+        function selectChip(groupId, el) {
+            document.getElementById(groupId).querySelectorAll('.chip').forEach(b => b.classList.remove('on'));
+            el.classList.add('on');
+        }
+        function setActive(cardId, btnId, text, on) {
+            document.getElementById(cardId).classList.toggle('active', on);
+            const btn = document.getElementById(btnId);
+            btn.classList.toggle('stop', on);
+            btn.textContent = on ? `Ngừng${text ? ' ('+text+')' : ''}` : ({
+                btnRandom: 'Bật ngẫu nhiên',
+                btnCluster: 'Bật cụm',
+                btnStrobe: 'Bật strobe',
+                btnDoi: 'Bật theo đội'
+            })[btnId];
+        }
+        function buildDoiTeams(mode) {
+            const all = [1,2,3,4,5,6,7,8,9,10,11,12,13];
+            if (mode === 'even') return all.filter(n => n % 2 === 0);
+            if (mode === 'odd')  return all.filter(n => n % 2 !== 0);
+            return all;
+        }
+
+        function resetAll() {
+            if (isRandomActive)  { isRandomActive = false;  emit('RANDOM_STOP');  setActive('cardRandom','btnRandom','',false); }
+            if (isClusterActive) { isClusterActive = false; clearInterval(clusterInterval); emit('CLUSTER_STOP'); setActive('cardCluster','btnCluster','',false); }
+            if (isStrobeActive)  { isStrobeActive = false;  emit('STROBE_STOP');  setActive('cardStrobe','btnStrobe','',false); }
+            stopDoi();
+            emit('FLASH_OFF');
+        }
+        function stopDoi() {
+            if (!isDoiActive && doiInterval === null) return;
+            isDoiActive = false;
+            clearInterval(doiInterval); doiInterval = null;
+            if (doiPrevTeam !== null) { emitTeam('FLASH_OFF', doiPrevTeam); doiPrevTeam = null; }
+            setActive('cardDoi','btnDoi','',false);
+        }
+
+        // ── Chạm ─────────────────────────────────────────────
+        const holdBtn = document.getElementById('btnTouch');
+        const down = e => { e.preventDefault(); resetAll(); emit('FLASH_ON'); holdBtn.classList.add('pressed'); };
+        const up   = e => { e.preventDefault(); emit('FLASH_OFF'); holdBtn.classList.remove('pressed'); };
+        holdBtn.addEventListener('mousedown',  down);
+        holdBtn.addEventListener('mouseup',    up);
+        holdBtn.addEventListener('mouseleave', up);
+        holdBtn.addEventListener('touchstart', down, { passive: false });
+        holdBtn.addEventListener('touchend',   up,   { passive: false });
+
+        // ── Ngẫu nhiên ───────────────────────────────────────
+        function setRandSpeed(el, min, max) {
+            selectChip('randChips', el);
+            randomMinMs = min; randomMaxMs = max;
+            if (isRandomActive) emit('RANDOM_START', { minMs: min, maxMs: max });
+        }
+        function toggleRandom() {
+            if (isRandomActive) { resetAll(); return; }
+            resetAll(); isRandomActive = true;
+            setActive('cardRandom','btnRandom','',true);
+            emit('RANDOM_START', { minMs: randomMinMs, maxMs: randomMaxMs });
+        }
+
+        // ── Cụm ──────────────────────────────────────────────
+        function toggleCluster() {
+            if (isClusterActive) { resetAll(); return; }
+            resetAll(); isClusterActive = true;
+            setActive('cardCluster','btnCluster','',true);
+            currentCluster = 0;
+            emit('CLUSTER_PULSE', { target: currentCluster });
+            clusterInterval = setInterval(() => {
+                currentCluster = (currentCluster + 1) % 3;
+                emit('CLUSTER_PULSE', { target: currentCluster });
+            }, 500);
+        }
+
+        // ── Strobe ────────────────────────────────────────────
+        function setStrobeSpeed(el, ms) {
+            selectChip('strobeChips', el);
+            strobeSpeed = ms;
+            if (isStrobeActive) emit('STROBE_START', { interval: ms });
+        }
+        function toggleStrobe() {
+            if (isStrobeActive) { resetAll(); return; }
+            resetAll(); isStrobeActive = true;
+            setActive('cardStrobe','btnStrobe','',true);
+            emit('STROBE_START', { interval: strobeSpeed });
+        }
+
+        // ── Đội ───────────────────────────────────────────────
+        function setDoiMode(el, mode) {
+            selectChip('doiModeChips', el); doiMode = mode;
+            if (isDoiActive) { stopDoi(); _startDoi(); }
+        }
+        function setDoiSpeed(el, ms) {
+            selectChip('doiSpeedChips', el); doiSpeedMs = ms;
+            if (isDoiActive) { stopDoi(); _startDoi(); }
+        }
+        function _startDoi() {
+            isDoiActive = true;
+            doiTeams = buildDoiTeams(doiMode); doiIdx = 0;
+            const label = { all:'Thứ tự', even:'Chẵn', odd:'Lẻ' }[doiMode];
+            setActive('cardDoi','btnDoi',label,true);
+            const tick = () => {
+                if (doiPrevTeam !== null) emitTeam('FLASH_OFF', doiPrevTeam);
+                const t = doiTeams[doiIdx];
+                emitTeam('FLASH_ON', t);
+                doiPrevTeam = t;
+                doiIdx = (doiIdx + 1) % doiTeams.length;
+            };
+            tick();
+            doiInterval = setInterval(tick, doiSpeedMs);
+        }
+        function toggleDoi() {
+            if (isDoiActive) { resetAll(); return; }
+            resetAll(); _startDoi();
+        }
+    </script>
+</body>
+</html>
