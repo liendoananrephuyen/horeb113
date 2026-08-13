@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>H113 Flash – Maria Đoàn Ngọc Mai Anh</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body, html {
+            width: 100%; height: 100%; margin: 0;
+            background: #000; color: white;
+            display: flex; justify-content: center; align-items: center;
+            font-family: Arial; overflow: hidden;
+        }
+        .btn-start {
+            padding: 20px 40px; font-size: 20px;
+            border-radius: 30px; background: #ff0055;
+            color: white; border: none; font-weight: bold;
+        }
+        #shield {
+            display: none; width: 100%; height: 100%;
+            position: fixed; top: 0; left: 0;
+            background: #000;
+            justify-content: center; align-items: center; flex-direction: column;
+            z-index: 9999; touch-action: none; user-select: none; cursor: none;
+        }
+        #shield-text { margin: 0; font-size: 18px; opacity: 0.7; letter-spacing: 1px; }
+        #shield-name { margin: 8px 0 0; font-size: 13px; opacity: 0.3; letter-spacing: 2px; }
+        #credit {
+            position: absolute; bottom: 24px; margin: 0;
+            font-size: 11px; letter-spacing: 3px;
+            text-transform: uppercase; opacity: 0.25; font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="btnInit" class="btn-start" onclick="startApp()">THAM GIA H113 FLASH SHOW</button>
+
+    <div id="shield">
+        <p id="shield-text">Giơ điện thoại lên cao bạn nhé!</p>
+        <p id="shield-name">Maria Đoàn Ngọc Mai Anh</p>
+        <p id="credit">code by Quang Huy</p>
+    </div>
+
+    <script>
+        const MY_TEAM = 12;
+        const myCluster = Math.floor(Math.random() * 3);
+
+        let videoTrack = null;
+        let randomTimeout = null;
+        let strobeInterval = null;
+        let hasPhysicalFlash = false;
+        let currentFlashState = false;
+        let torchBusy = false;
+        let pendingFlash = null;
+
+        const socket = io('https://hylecuoicung.com');
+
+        // Đăng ký vào đội khi kết nối
+        socket.on('connect', () => {
+            socket.emit('join-team', MY_TEAM);
+        });
+
+        async function startApp() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                videoTrack = stream.getVideoTracks()[0];
+
+                try {
+                    const cap = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+                    if (cap.torch) hasPhysicalFlash = true;
+                } catch(e) {}
+
+                try {
+                    if ('wakeLock' in navigator) await navigator.wakeLock.request('screen');
+                } catch(e) {}
+
+                document.getElementById('btnInit').style.display = 'none';
+                const shield = document.getElementById('shield');
+                shield.style.display = 'flex';
+
+                ['touchstart', 'touchmove', 'touchend', 'click', 'contextmenu'].forEach(evt => {
+                    shield.addEventListener(evt, e => e.preventDefault(), { passive: false });
+                });
+
+                listenToServer();
+            } catch (err) {
+                alert("Lỗi: " + (err.message || "Không thể truy cập Camera. Hãy cấp quyền và thử lại!"));
+            }
+        }
+
+        function listenToServer() {
+            socket.on('slave-command', (cmd) => {
+                if (cmd.action === 'FLASH_ON')  setFlash(true);
+                if (cmd.action === 'FLASH_OFF') setFlash(false);
+
+                if (cmd.action === 'RANDOM_START') {
+                    clearTimeout(randomTimeout);
+                    const minMs = cmd.minMs || 100;
+                    const maxMs = cmd.maxMs || 500;
+                    const tick = () => {
+                        setFlash(Math.random() > 0.5);
+                        randomTimeout = setTimeout(tick, minMs + Math.random() * (maxMs - minMs));
+                    };
+                    tick();
+                }
+                if (cmd.action === 'RANDOM_STOP') {
+                    clearTimeout(randomTimeout);
+                    randomTimeout = null;
+                    setFlash(false);
+                }
+
+                if (cmd.action === 'CLUSTER_PULSE') {
+                    setFlash(cmd.target === myCluster);
+                }
+                if (cmd.action === 'CLUSTER_STOP') {
+                    setFlash(false);
+                }
+
+                if (cmd.action === 'STROBE_START') {
+                    clearInterval(strobeInterval);
+                    let strobeState = false;
+                    strobeInterval = setInterval(() => {
+                        strobeState = !strobeState;
+                        setFlash(strobeState);
+                    }, cmd.interval || 100);
+                }
+                if (cmd.action === 'STROBE_STOP') {
+                    clearInterval(strobeInterval);
+                    setFlash(false);
+                }
+            });
+        }
+
+        async function setFlash(isOn) {
+            if (isOn === currentFlashState) return;
+            if (torchBusy) { pendingFlash = isOn; return; }
+
+            currentFlashState = isOn;
+            torchBusy = true;
+
+            if (hasPhysicalFlash && videoTrack) {
+                try {
+                    await videoTrack.applyConstraints({ advanced: [{ torch: isOn }] });
+                } catch(e) {}
+            }
+
+            torchBusy = false;
+
+            if (pendingFlash !== null && pendingFlash !== currentFlashState) {
+                const next = pendingFlash;
+                pendingFlash = null;
+                setFlash(next);
+            } else {
+                pendingFlash = null;
+            }
+        }
+    </script>
+</body>
+</html>
