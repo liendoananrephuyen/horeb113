@@ -71,6 +71,84 @@ select.ctrl-input { cursor: pointer; }
   transition: color .15s, border-color .15s;
 }
 .btn-reload:hover { color: #e2e8f0; border-color: #6366f1; }
+.btn-edit {
+  padding: 9px 18px; border-radius: 10px;
+  background: #161625; border: 1px solid #2a2940;
+  color: #38bdf8; font-size: 13px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+  transition: background .15s, border-color .15s;
+}
+.btn-edit:hover { background: rgba(56,189,248,.1); border-color: #38bdf8; }
+.btn-reset {
+  padding: 9px 18px; border-radius: 10px;
+  background: #161625; border: 1px solid #2a2940;
+  color: #f87171; font-size: 13px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+  transition: background .15s, border-color .15s;
+}
+.btn-reset:hover { background: rgba(248,113,113,.1); border-color: #f87171; }
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 900;
+  background: rgba(0,0,0,.7);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+.modal {
+  background: #0e0e1c; border: 1px solid #2a2940;
+  border-radius: 18px; width: 100%; max-width: 420px;
+  overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,.6);
+}
+.modal-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid #1e1e32;
+  font-size: 15px; font-weight: 800;
+}
+.modal-close {
+  background: #1e1e32; border: none; color: #94a3b8;
+  width: 28px; height: 28px; border-radius: 8px;
+  font-size: 14px; cursor: pointer; line-height: 1;
+  transition: background .15s, color .15s;
+}
+.modal-close:hover { background: #2a2940; color: #e2e8f0; }
+.modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.modal-lbl {
+  font-size: 10px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: #6b7280; margin-bottom: 6px;
+}
+.modal-select {
+  width: 100%; padding: 10px 14px; border-radius: 10px;
+  background: #161625; border: 1px solid #2a2940;
+  color: #e2e8f0; font-size: 13px; outline: none; cursor: pointer;
+}
+.modal-select:focus { border-color: #6366f1; }
+.tram-chips { display: flex; gap: 8px; }
+.tram-chip {
+  flex: 1; padding: 10px 6px; border-radius: 9px; border: 1.5px solid #2a2940;
+  background: #161625; color: #6b7280; font-size: 13px; font-weight: 700;
+  text-align: center; cursor: pointer; transition: all .15s;
+}
+.tram-chip.on { background: rgba(99,102,241,.15); border-color: #6366f1; color: #a5b4fc; }
+.stars-row { display: flex; gap: 6px; }
+.star-btn {
+  font-size: 28px; background: none; border: none; cursor: pointer;
+  color: #2a2940; transition: color .1s, transform .1s;
+  line-height: 1; padding: 2px;
+}
+.star-btn.lit { color: #f59e0b; }
+.star-btn:hover { transform: scale(1.15); }
+.modal-ft {
+  display: flex; gap: 10px; padding: 14px 20px 20px;
+}
+.modal-ft button { flex: 1; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; }
+.btn-cancel { background: #1e1e32; color: #94a3b8; }
+.btn-cancel:hover { background: #2a2940; }
+.btn-submit { background: linear-gradient(90deg,#6366f1,#a855f7); color: #fff; }
+.btn-submit:hover { opacity: .88; }
+.btn-submit:disabled { opacity: .4; cursor: not-allowed; }
 
 /* ── Stats bar ── */
 .stats-bar {
@@ -185,7 +263,9 @@ td.tb {
         <option value="">Tất cả đội</option>
       </select>
       <button class="btn-reload" onclick="loadData()" title="Tải lại">↺</button>
-      <button class="btn-save"   onclick="saveXlsx()">⬇ Lưu xlsx</button>
+      <button class="btn-edit"  onclick="openEdit()">✏ Sửa điểm</button>
+      <button class="btn-reset" onclick="resetScores()">🗑 Reset điểm</button>
+      <button class="btn-save"  onclick="saveXlsx()">⬇ Lưu xlsx</button>
     </div>
   </div>
 </div>
@@ -231,6 +311,53 @@ td.tb {
 </div>
 
 </div><!-- /content -->
+
+<!-- ── Modal Sửa điểm ── -->
+<div class="modal-overlay" id="modal-edit" style="display:none" onclick="if(event.target===this)closeEdit()">
+  <div class="modal">
+    <div class="modal-hd">
+      <span>✏ Sửa điểm</span>
+      <button class="modal-close" onclick="closeEdit()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <div class="modal-lbl">Đội</div>
+        <select class="modal-select" id="edit-doi" onchange="onEditDoi()">
+          <option value="">— chọn đội —</option>
+        </select>
+      </div>
+      <div>
+        <div class="modal-lbl">Người</div>
+        <select class="modal-select" id="edit-ten">
+          <option value="">— chọn đội trước —</option>
+        </select>
+      </div>
+      <div>
+        <div class="modal-lbl">Trạm</div>
+        <div class="tram-chips" id="edit-tram-chips">
+          <button class="tram-chip" onclick="pickTram(this,1)">Trạm 1</button>
+          <button class="tram-chip" onclick="pickTram(this,2)">Trạm 2</button>
+          <button class="tram-chip" onclick="pickTram(this,3)">Trạm 3</button>
+          <button class="tram-chip" onclick="pickTram(this,4)">Trạm 4</button>
+        </div>
+      </div>
+      <div>
+        <div class="modal-lbl">Số sao</div>
+        <div class="stars-row" id="edit-stars">
+          <button class="star-btn" data-v="1" onclick="pickStar(1)">★</button>
+          <button class="star-btn" data-v="2" onclick="pickStar(2)">★</button>
+          <button class="star-btn" data-v="3" onclick="pickStar(3)">★</button>
+          <button class="star-btn" data-v="4" onclick="pickStar(4)">★</button>
+          <button class="star-btn" data-v="5" onclick="pickStar(5)">★</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-cancel" onclick="closeEdit()">Huỷ</button>
+      <button class="btn-submit" id="btn-submit-edit" onclick="submitEdit()" disabled>Lưu</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const API = 'https://hylecuoicung.com/api/tongket';
@@ -403,6 +530,124 @@ function saveXlsx() {
   const now = new Date();
   const stamp = `${now.getDate().toString().padStart(2,'0')}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getFullYear()}`;
   XLSX.writeFile(wb, `tongket_H113_${stamp}.xlsx`);
+}
+
+// ── Reset điểm ────────────────────────────────────────────────────
+async function resetScores() {
+  if (!confirm('⚠ Xoá TOÀN BỘ điểm 4 trạm của tất cả mọi người?\n\nHành động này KHÔNG thể hoàn tác!')) return;
+  if (!confirm('Xác nhận lần 2: thực sự muốn reset sạch điểm?')) return;
+  try {
+    const r = await fetch('https://hylecuoicung.com/api/tongket/reset', { method: 'POST' });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error);
+    alert('✅ Đã xoá toàn bộ điểm trạm.');
+    loadData();
+  } catch(e) {
+    alert('Lỗi: ' + e.message);
+  }
+}
+
+// ── Sửa điểm — state ─────────────────────────────────────────────
+let editTram = 0, editStar = 0;
+
+function openEdit() {
+  // Populate đội dropdown
+  const sel = document.getElementById('edit-doi');
+  sel.innerHTML = '<option value="">— chọn đội —</option>';
+  const dois = [...new Set(allData.map(r => r.doi).filter(Boolean))].sort((a,b) => {
+    return (+a.match(/\d+/)?.[0]||0) - (+b.match(/\d+/)?.[0]||0);
+  });
+  dois.forEach(d => {
+    const o = document.createElement('option'); o.value = d; o.textContent = d;
+    sel.appendChild(o);
+  });
+  // Reset state
+  editTram = 0; editStar = 0;
+  document.getElementById('edit-ten').innerHTML = '<option value="">— chọn đội trước —</option>';
+  document.querySelectorAll('.tram-chip').forEach(c => c.classList.remove('on'));
+  document.querySelectorAll('.star-btn').forEach(s => s.classList.remove('lit'));
+  document.getElementById('btn-submit-edit').disabled = true;
+  document.getElementById('modal-edit').style.display = 'flex';
+}
+
+function closeEdit() {
+  document.getElementById('modal-edit').style.display = 'none';
+}
+
+function onEditDoi() {
+  const doi = document.getElementById('edit-doi').value;
+  const sel = document.getElementById('edit-ten');
+  sel.innerHTML = '<option value="">— chọn tên —</option>';
+  if (!doi) return;
+  allData
+    .filter(r => r.doi === doi)
+    .forEach(r => {
+      const o = document.createElement('option');
+      o.value = r.stt;
+      o.textContent = [r.tenThanh, r.hoTen].filter(Boolean).join(' ');
+      sel.appendChild(o);
+    });
+  checkSubmit();
+}
+
+function pickTram(el, t) {
+  document.querySelectorAll('.tram-chip').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
+  editTram = t;
+  // Hiện điểm hiện tại của người đang chọn
+  const stt = +document.getElementById('edit-ten').value;
+  if (stt) {
+    const row = allData.find(r => r.stt === stt);
+    const cur = row ? row['tram' + t] : null;
+    if (cur) pickStar(cur); else { editStar = 0; document.querySelectorAll('.star-btn').forEach(s => s.classList.remove('lit')); }
+  }
+  checkSubmit();
+}
+
+function pickStar(v) {
+  editStar = v;
+  document.querySelectorAll('.star-btn').forEach(s => {
+    s.classList.toggle('lit', +s.dataset.v <= v);
+  });
+  checkSubmit();
+}
+
+function checkSubmit() {
+  const ok = document.getElementById('edit-ten').value &&
+             editTram > 0 && editStar > 0;
+  document.getElementById('btn-submit-edit').disabled = !ok;
+}
+
+document.getElementById('edit-ten').addEventListener('change', () => {
+  // Khi chọn tên, nếu đã chọn trạm rồi → cập nhật điểm hiện tại
+  if (editTram) {
+    const stt = +document.getElementById('edit-ten').value;
+    const row = allData.find(r => r.stt === stt);
+    const cur = row ? row['tram' + editTram] : null;
+    if (cur) pickStar(cur); else { editStar = 0; document.querySelectorAll('.star-btn').forEach(s => s.classList.remove('lit')); }
+  }
+  checkSubmit();
+});
+
+async function submitEdit() {
+  const stt  = +document.getElementById('edit-ten').value;
+  if (!stt || !editTram || !editStar) return;
+  const btn = document.getElementById('btn-submit-edit');
+  btn.disabled = true; btn.textContent = 'Đang lưu…';
+  try {
+    const r = await fetch('https://hylecuoicung.com/api/tongket/edit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stt, tram: editTram, diem: editStar }),
+    });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error);
+    closeEdit();
+    loadData();
+  } catch(e) {
+    alert('Lỗi: ' + e.message);
+    btn.disabled = false; btn.textContent = 'Lưu';
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────
