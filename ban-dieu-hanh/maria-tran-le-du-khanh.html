@@ -308,11 +308,53 @@ a    { text-decoration:none; -webkit-tap-highlight-color:transparent; }
 .footer { text-align:center; padding:0 20px 52px; font-size:11px; color:var(--t3); letter-spacing:.1em; }
 
 /* ── LIGHTBOX ── */
-.lb { display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.92); align-items:center; justify-content:center; }
+.lb { display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.95); flex-direction:column; }
 .lb.open { display:flex; }
-.lb img  { max-width:95vw; max-height:90vh; border-radius:10px; object-fit:contain; }
-.lb-cap  { position:absolute; bottom:20px; left:0; right:0; text-align:center; font-size:13px; color:rgba(255,255,255,.65); }
-.lb-x    { position:absolute; top:16px; right:20px; font-size:28px; color:#fff; opacity:.6; cursor:pointer; background:none; border:none; line-height:1; }
+
+.lb-header {
+  position:relative; display:flex; align-items:center; justify-content:center;
+  padding:14px 20px; flex-shrink:0;
+}
+.lb-counter { color:rgba(255,255,255,.5); font-size:13px; letter-spacing:.05em; }
+.lb-x {
+  position:absolute; right:16px; top:50%; transform:translateY(-50%);
+  font-size:30px; color:#fff; opacity:.65; cursor:pointer;
+  background:none; border:none; line-height:1; padding:4px 8px;
+  transition:opacity .2s;
+}
+.lb-x:hover { opacity:1; }
+
+.lb-body { flex:1; position:relative; overflow:hidden; }
+.lb-track {
+  display:flex; height:100%;
+  transition:transform .35s cubic-bezier(.4,0,.2,1);
+  will-change:transform;
+}
+.lb-item {
+  min-width:100%; height:100%;
+  display:flex; align-items:center; justify-content:center;
+  padding:0 16px;
+}
+.lb-item img {
+  max-width:100%; max-height:100%; object-fit:contain;
+  border-radius:6px; user-select:none; -webkit-user-drag:none;
+  pointer-events:none;
+}
+
+.lb-arrow {
+  position:absolute; top:50%; transform:translateY(-50%);
+  background:rgba(255,255,255,.15); backdrop-filter:blur(4px);
+  border:none; border-radius:50%; width:42px; height:42px;
+  font-size:24px; color:#fff; cursor:pointer; z-index:5;
+  display:flex; align-items:center; justify-content:center;
+  transition:background .2s;
+}
+.lb-arrow:hover { background:rgba(255,255,255,.32); }
+.lb-arrow.prev { left:10px; }
+.lb-arrow.next { right:10px; }
+
+.lb-footer { padding:10px 20px 20px; text-align:center; flex-shrink:0; }
+.lb-cap { font-size:13px; color:rgba(255,255,255,.6); min-height:18px; }
 
 @media (prefers-reduced-motion:reduce) {
   .halo::before,.halo::after { animation:none; }
@@ -351,10 +393,19 @@ a    { text-decoration:none; -webkit-tap-highlight-color:transparent; }
 </div>
 
 <!-- LIGHTBOX -->
-<div class="lb" id="lb" onclick="closeLB()">
-  <button class="lb-x" aria-label="Đóng">×</button>
-  <img id="lb-img" src="" alt="" onclick="event.stopPropagation()">
-  <p class="lb-cap" id="lb-cap"></p>
+<div class="lb" id="lb">
+  <div class="lb-header">
+    <span class="lb-counter" id="lb-counter"></span>
+    <button class="lb-x" id="lb-x" aria-label="Đóng">×</button>
+  </div>
+  <div class="lb-body" id="lb-body">
+    <div class="lb-track" id="lb-track"></div>
+    <button class="lb-arrow prev" id="lb-prev" aria-label="Trước">&#8249;</button>
+    <button class="lb-arrow next" id="lb-next" aria-label="Tiếp">&#8250;</button>
+  </div>
+  <div class="lb-footer">
+    <p class="lb-cap" id="lb-cap"></p>
+  </div>
 </div>
 
 <script>
@@ -399,7 +450,7 @@ a    { text-decoration:none; -webkit-tap-highlight-color:transparent; }
 
       item.appendChild(phEl);
       item.appendChild(img);
-      item.addEventListener('click', () => { if (img.classList.contains('loaded')) openLB(ph.src, ph.cap); });
+      item.addEventListener('click', () => { if (img.classList.contains('loaded')) openLB(i); });
       track.appendChild(item);
     });
 
@@ -521,18 +572,77 @@ a    { text-decoration:none; -webkit-tap-highlight-color:transparent; }
 })();
 
 /* ── LIGHTBOX ── */
-function openLB(src, cap) {
-  document.getElementById('lb-img').src = src;
-  document.getElementById('lb-cap').textContent = cap || '';
+let _lbCur = 0;
+const _lbPhotos = () => PROFILE.photos || [];
+
+function _lbBuild() {
+  const track = document.getElementById('lb-track');
+  track.innerHTML = '';
+  _lbPhotos().forEach(ph => {
+    const item = document.createElement('div');
+    item.className = 'lb-item';
+    const img = document.createElement('img');
+    img.src = ph.src.replace(/sz=w\d+/, 'sz=w1200'); // full-res in lightbox
+    img.alt = ph.cap || '';
+    item.appendChild(img);
+    track.appendChild(item);
+  });
+}
+
+function _lbGoTo(idx) {
+  const photos = _lbPhotos();
+  const n = photos.length;
+  _lbCur = ((idx % n) + n) % n;
+  document.getElementById('lb-track').style.transform = `translateX(-${_lbCur * 100}%)`;
+  document.getElementById('lb-cap').textContent = photos[_lbCur].cap || '';
+  document.getElementById('lb-counter').textContent = n > 1 ? `${_lbCur + 1} / ${n}` : '';
+}
+
+function openLB(index) {
+  if (!_lbPhotos().length) return;
+  _lbBuild();
   document.getElementById('lb').classList.add('open');
   document.body.style.overflow = 'hidden';
+  // no transition on initial jump
+  const track = document.getElementById('lb-track');
+  track.style.transition = 'none';
+  _lbGoTo(index);
+  requestAnimationFrame(() => { track.style.transition = ''; });
 }
+
 function closeLB() {
   document.getElementById('lb').classList.remove('open');
   document.body.style.overflow = '';
-  setTimeout(() => { document.getElementById('lb-img').src = ''; }, 300);
 }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLB(); });
+
+document.getElementById('lb-x').addEventListener('click', closeLB);
+document.getElementById('lb-prev').addEventListener('click', () => _lbGoTo(_lbCur - 1));
+document.getElementById('lb-next').addEventListener('click', () => _lbGoTo(_lbCur + 1));
+
+// Tap dark area to close
+document.getElementById('lb').addEventListener('click', e => {
+  if (e.target.id === 'lb' || e.target.classList.contains('lb-footer') ||
+      e.target.classList.contains('lb-cap') || e.target.classList.contains('lb-header') ||
+      e.target.classList.contains('lb-counter')) closeLB();
+});
+
+// Swipe lightbox
+let _lbTx = 0;
+document.getElementById('lb-body').addEventListener('touchstart', e => {
+  _lbTx = e.touches[0].clientX;
+}, { passive: true });
+document.getElementById('lb-body').addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - _lbTx;
+  if (Math.abs(dx) > 45) _lbGoTo(_lbCur + (dx < 0 ? 1 : -1));
+}, { passive: true });
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lb').classList.contains('open')) return;
+  if (e.key === 'Escape')      closeLB();
+  if (e.key === 'ArrowLeft')   _lbGoTo(_lbCur - 1);
+  if (e.key === 'ArrowRight')  _lbGoTo(_lbCur + 1);
+});
 
 /* ── PARTICLES (hero) ── */
 (function () {
